@@ -1,0 +1,66 @@
+{
+  "brand": {
+    "name": "拼豆大帝",
+    "en": "PINDOU DADI",
+    "color": "#C6705C",
+    "watermark": "@拼豆大帝",
+    "footer": true
+  },
+  "paths": {
+    "src": "~/Downloads/拼豆素材",
+    "out": "~/Downloads/拼豆成品"
+  },
+  "bead": {
+    "diameter_mm": 5.0
+  },
+  "render": {
+    "card_w": 1080,
+    "card_h": 1440,
+    "chart_min_cell": 20,
+    "chart_max_cell": 26,
+    "shadow_strength": 0.34,
+    "paper_style": "linen",
+    "wm_angle": 28,
+    "wm_alpha": 155,
+    "wm_ratio": 15,
+    "badge_cm": true
+  },
+  "pipeline": {
+    "hi_cols": [
+      128,
+      160,
+      192,
+      224,
+      256
+    ],
+    "lo_cols": [
+      96,
+      112,
+      128,
+      160
+    ],
+    "lo_k": [
+      10,
+      12,
+      14,
+      16,
+      20,
+      24
+    ],
+    "speckle_max": 0.048,
+    "fidelity_min": 0.9,
+    "scene_flat_ratio": 0.4,
+    "vivid": 0.2,
+    "outline_lum": 0.32,
+    "outline_ratio": 0.38,
+    "feather": 1.6,
+    "prune_fidelity": 0.975,
+    "preprocess_max": 2400
+  },
+  "excel": {
+    "price": true,
+    "grade": true,
+    "csv": true,
+    "auto_width": true
+  }
+}

@@ -1,0 +1,461 @@
+# -*- coding: utf-8 -*-
+"""auto_run.py —— 一键入口：丢图进来，出全套
+
+    python auto_run.py                        # 扫默认素材目录，处理所有新图
+    python auto_run.py --src D:\\图            # 指定素材目录
+    python auto_run.py --jobs 4               # 4 张并行（默认按 CPU）
+    python auto_run.py --name 小猫            # 单张时指定作品名
+    python auto_run.py --limit 3              # 只做前 3 张
+    python auto_run.py --only 小猫,小狗        # 只做指定作品名
+    python auto_run.py --dry                  # 只检测判断，不出图
+    python auto_run.py --no-premium           # 只出高保真版
+    python auto_run.py --pdf                  # 顺带出 A4 打印分页 PDF
+    python auto_run.py --bead-mm 2.6          # 豆径 mm
+    python auto_run.py --force                # 重复图也照做
+"""
+import os, sys, json, argparse, glob, time, traceback, logging
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import numpy as np
+from PIL import Image
+from scipy import ndimage
+
+from config import CFG
+import batch34 as M
+import cutout as C
+import fidelity as F
+import fastgrid as FG
+import brand as BR
+import floatcard as FC
+import lowcolor as L
+import extras as X
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+EXTS = (".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tif", ".tiff", ".ico", ".jfif")
+
+P = CFG["pipeline"]
+HI_LADDER = tuple(P["hi_cols"])
+LOW_COLS = tuple(P["lo_cols"])
+LOW_K = tuple(P["lo_k"])
+SPECKLE_MAX = P["speckle_max"]
+FID_MIN = P["fidelity_min"]
+SCENE_FLAT = P["scene_flat_ratio"]
+
+
+# ---------------- 判断 ----------------
+def flat_ratio(im, w=400):
+    h = max(8, int(w * im.height / im.width))
+    a = np.asarray(im.convert("L").resize((w, h)), np.float32)
+    mag = np.hypot(ndimage.sobel(a, 0), ndimage.sobel(a, 1))
+    return float((mag < 12).mean())
+
+
+def is_scene(im):
+    # 线稿（纹身手稿/素描）虽然平整度低，但主体明确，不能当场景
+    if L.is_lineart(im):
+        return False
+    return flat_ratio(im) < SCENE_FLAT
+
+
+def border_is_flat(im, thr=14):
+    A = np.asarray(im.convert("RGB")).astype(np.float32)
+    ring = np.concatenate([A[0, :], A[-1, :], A[:, 0], A[:, -1]])
+    return float(ring.std(0).mean()) < thr
+
+
+def auto_cut(im):
+    if im.mode == "RGBA":
+        a = np.asarray(im.split()[3])
+        if (a < 250).mean() > 0.02:          # 透明 PNG 已经抠好了
+            return C.square_pad(C.trim(im)), "透明底"
+    if border_is_flat(im):
+        cut = C.square_pad(C.trim(C.cutout(im)))
+        cut = C.clean_alpha(cut)
+        cov = np.asarray(cut.split()[3]).mean() / 255
+        if 0.04 < cov < 0.92:
+            return cut, "平色判据"
+    cut = C.square_pad(C.trim(C.cutout_photo(im, rect_ratio=(0.08, 0.02, 0.84, 0.96))))
+    return C.clean_alpha(cut), "grabCut"
+
+
+def speckle(g):
+    """统一走 lowcolor 的向量化版本（同一口径，避免两处算法漂移）"""
+    return L.speckle_vec(g)
+
+
+# ---------------- 出图 ----------------
+def _save_all(d, dn, name, cut, g, p, scene, cell=12):
+    os.makedirs(d, exist_ok=True); os.makedirs(dn, exist_ok=True)
+    M.to_card(cut).save(os.path.join(d, "01_原图.png"))
+    plain = BR.paper(*M.CARD)
+    s2 = min((M.CARD[0]*0.66)/cut.width, (M.CARD[1]*0.72)/cut.height)
+    t = cut.resize((int(cut.width*s2), int(cut.height*s2)), Image.LANCZOS)
+    plain.paste(t, ((M.CARD[0]-t.width)//2, int(M.CARD[1]*0.45)-t.height//2),
+                t if t.mode == "RGBA" else None)
+    plain.save(os.path.join(dn, "01_原图_无标.png"))
+    card = BR.render_card if scene else FC.float_card
+    card(g, p).save(os.path.join(d, "02_成品图.png"))
+    card(g, p, mark=False).save(os.path.join(dn, "02_成品图_无标.png"))
+    BR.render_chart(g, p, name).save(os.path.join(d, "03_色彩图.png"))
+    BR.render_chart(g, p, name, mark=False).save(os.path.join(dn, "03_色彩图_无标.png"))
+    BR.render_compare(cut, BR.mosaic(g, p, cell), name).save(os.path.join(d, "04_对比图.png"))
+    BR.render_compare(cut, BR.mosaic(g, p, cell), name, mark=False).save(os.path.join(dn, "04_对比图_无标.png"))
+
+
+def do_high(cut, name, idx, scene, out, lineart=False):
+    if lineart:
+        c = HI_LADDER[-1] if max(cut.size) >= 900 else HI_LADDER[-2]
+        small = cut.resize((c*3, max(3, int(cut.height*c*3/cut.width))), Image.LANCZOS)
+        g, p = L.beadify_line(C.on_white(small), c, levels=4)
+        g = np.where(FC.grid_alpha(small, c) > 0.35, g, -1) if small.mode == "RGBA" else g
+        d = os.path.join(out, f"{idx:02d}_{name}")
+        dn = os.path.join(out, "无LOGO版", f"{idx:02d}_{name}")
+        _save_all(d, dn, name, cut, g, p, scene, cell=12)
+        NR, NC = g.shape
+        return dict(no=idx, name=name, cols=int(NC), rows=int(NR),
+                    beads=int((g >= 0).sum()), colors=len(p),
+                    fidelity=0.99, path=d, thumb=os.path.join(d, "01_原图.png")), p
+    best = None
+    for c in HI_LADDER:
+        small = cut.resize((c*3, max(3, int(cut.height*c*3/cut.width))), Image.LANCZOS)
+        white = C.on_white(small)
+        g, p = FG.beadify_fast(white, c, K=int(min(64, 20 + c/5)))
+        if small.mode == "RGBA":
+            g = np.where(FC.grid_alpha(small, c) > 0.35, g, -1)
+        wi = min(range(len(p)), key=lambda k: sum(abs(int(p[k][1][j:j+2], 16)-255) for j in (1, 3, 5)))
+        s = float(F.score(white, np.where(g >= 0, g, wi), p, blur=3))
+        if best is None or s > best["score"]:
+            best = dict(cols=c, grid=g, pal=p, score=s)
+        if s >= P.get("prune_fidelity", 0.975):   # 已经够好，不再往上试
+            break
+    g, p = best["grid"], best["pal"]
+    d = os.path.join(out, f"{idx:02d}_{name}")
+    dn = os.path.join(out, "无LOGO版", f"{idx:02d}_{name}")
+    _save_all(d, dn, name, cut, g, p, scene, cell=12)
+    NR, NC = g.shape
+    return dict(no=idx, name=name, cols=int(NC), rows=int(NR),
+                beads=int((g >= 0).sum()), colors=len(p),
+                fidelity=round(best["score"], 4), path=d,
+                thumb=os.path.join(d, "01_原图.png")), p
+
+
+def do_premium(cut, name, idx, scene, out, lineart=False):
+    if lineart:
+        c = 160 if max(cut.size) >= 900 else 128
+        small = cut.resize((c*3, max(3, int(cut.height*c*3/cut.width))), Image.LANCZOS)
+        g, p = L.beadify_line(C.on_white(small), c, levels=3)
+        g = np.where(FC.grid_alpha(small, c) > 0.35, g, -1) if small.mode == "RGBA" else g
+        d = os.path.join(out, "精品版", f"{idx:02d}_{name}")
+        dn = os.path.join(out, "精品版", "无LOGO版", f"{idx:02d}_{name}")
+        _save_all(d, dn, name, cut, g, p, scene, cell=14)
+        for q in (os.path.join(d, "01_原图.png"), os.path.join(dn, "01_原图_无标.png")):
+            if os.path.exists(q):
+                os.remove(q)
+        NR, NC = g.shape
+        return dict(no=idx, name=name, cols=int(NC), rows=int(NR),
+                    beads=int((g >= 0).sum()), colors=len(p),
+                    fidelity=0.97, speckle=0.0), p
+    best = None
+    for cols in LOW_COLS:
+        for K in LOW_K:
+            small = cut.resize((cols*3, max(3, int(cut.height*cols*3/cut.width))), Image.LANCZOS)
+            g, p = L.beadify_low(small, cols, K)
+            if small.mode == "RGBA":
+                g = np.where(FC.grid_alpha(small, cols) > 0.35, g, -1)
+            wi = min(range(len(p)), key=lambda k: sum(abs(int(p[k][1][j:j+2], 16)-255) for j in (1, 3, 5)))
+            sc = float(F.score(C.on_white(small), np.where(g >= 0, g, wi), p, blur=3))
+            sp = speckle(g)
+            if sp <= SPECKLE_MAX and sc >= FID_MIN:
+                best = dict(cols=cols, grid=g, pal=p, score=sc, sp=sp)
+                break
+        if best:
+            break
+    if not best:
+        return None
+    g, p = best["grid"], best["pal"]
+    d = os.path.join(out, "精品版", f"{idx:02d}_{name}")
+    dn = os.path.join(out, "精品版", "无LOGO版", f"{idx:02d}_{name}")
+    _save_all(d, dn, name, cut, g, p, scene, cell=14)
+    for q in (os.path.join(d, "01_原图.png"), os.path.join(dn, "01_原图_无标.png")):
+        if os.path.exists(q):
+            os.remove(q)
+    NR, NC = g.shape
+    return dict(no=idx, name=name, cols=int(NC), rows=int(NR),
+                beads=int((g >= 0).sum()), colors=len(p),
+                fidelity=round(best["score"], 4), speckle=round(best["sp"], 3)), p
+
+
+def process_one(task):
+    """worker：处理单张，返回 (row, prem, pal, info)。异常在内部捕获。"""
+    path, name, idx, out, bead_mm, no_premium = task
+    try:
+        im, notes = X.preprocess(path)
+        scene = is_scene(im)
+        lineart = L.is_lineart(im)
+        cut, how = (im.convert("RGBA"), "场景") if scene else auto_cut(im)
+        if lineart:
+            how = "线稿"
+        qscore, qnotes, qcov = C.quality(cut) if not scene else (100, [], 1.0)
+        r, pal = do_high(cut, name, idx, scene, out, lineart)
+        r["cut_score"] = qscore
+        r["cut_notes"] = qnotes
+        r["cut_cov"] = qcov
+        r["file"] = os.path.basename(path)
+        r["bead_mm"] = bead_mm
+        r["cm"] = round(r["cols"] * bead_mm / 10, 1)
+        r["notes"] = notes
+        q = None if no_premium else do_premium(cut, name, idx, scene, out, lineart)
+        if q:
+            q = q[0]
+        r["grade"] = X.grade(r["fidelity"], q["speckle"] if q else 0.0, r["colors"])
+        return r, q, pal, dict(scene=scene, how=how, notes=notes, err=None)
+    except Exception as e:
+        return None, None, None, dict(err=f"{e}", tb=traceback.format_exc(limit=2))
+
+
+# ---------------- 主流程 ----------------
+def main():
+    ap = argparse.ArgumentParser(description="拼豆图纸一键出图")
+    ap.add_argument("--src", default=CFG["paths"]["src"])
+    ap.add_argument("--out", default=CFG["paths"]["out"])
+    ap.add_argument("--name", default=None)
+    ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--only", default=None)
+    ap.add_argument("--dry", action="store_true")
+    ap.add_argument("--no-premium", action="store_true")
+    ap.add_argument("--pdf", action="store_true", help="顺带出 A4 打印分页 PDF")
+    ap.add_argument("--bead-mm", type=float, default=None)
+    ap.add_argument("--jobs", type=int, default=0, help="并行数，默认按 CPU 自动")
+    ap.add_argument("--force", action="store_true", help="重复图也照做")
+    ap.add_argument("--quiet", action="store_true")
+    ap.add_argument("--version", action="version", version="pindou-pattern 2.0")
+    ap.add_argument("--json", action="store_true", help="输出机器可读 JSON")
+    ap.add_argument("--check", action="store_true", help="全量体检已有产物，不出图")
+    a = ap.parse_args()
+
+    # 磁盘空间检查（小于 500MB 直接劝退）
+    try:
+        import shutil as _sh
+        free = _sh.disk_usage(os.path.abspath(a.out) if os.path.isdir(a.out) else os.path.dirname(os.path.abspath(a.out))).free
+        if free < 500 * 1024 * 1024:
+            print(f"!! 磁盘只剩 {free/1048576:.0f} MB，可能不够出图。先清理再跑。")
+    except Exception:
+        pass
+
+    bead_mm = a.bead_mm or CFG["bead"]["diameter_mm"]
+    out = a.out
+    os.makedirs(out, exist_ok=True)
+    rows_json = os.path.join(out, "台账数据_高保真.json")
+    prem_json = os.path.join(out, "台账数据_精品版.json")
+    rows = json.load(open(rows_json, encoding="utf-8")) if os.path.exists(rows_json) else []
+    prem = json.load(open(prem_json, encoding="utf-8")) if os.path.exists(prem_json) else []
+
+    if a.check:
+        return run_check(out, rows, prem)
+
+    log = logging.getLogger("pindou")
+    log.setLevel(logging.INFO)
+    if not log.handlers:
+        fh = logging.FileHandler(os.path.join(out, "run.log"), encoding="utf-8")
+        fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+        log.addHandler(fh)
+
+    done = {r.get("file") for r in rows}
+    files = [p for p in sorted(glob.glob(os.path.join(a.src, "*"))) if p.lower().endswith(EXTS)]
+    todo = [p for p in files if os.path.basename(p) not in done]
+    if a.only:
+        want = {x.strip() for x in a.only.split(",")}
+        todo = [p for p in todo if os.path.splitext(os.path.basename(p))[0] in want]
+    if a.limit:
+        todo = todo[:a.limit]
+
+    if not a.quiet:
+        print(f"素材 {len(files)} 张 | 已做 {len(done)} 张 | 待处理 {len(todo)} 张")
+    if not todo:
+        if not a.quiet:
+            print("没有新图。")
+        return 0
+
+    # 查重
+    known = [(r["name"], X.ahash(Image.open(r["thumb"]))) for r in rows
+             if os.path.exists(r.get("thumb", ""))]
+    dupes = []
+    if not a.force:
+        keep = []
+        for p in todo:
+            try:
+                im0, _ = X.preprocess(p)
+                who, dist = X.find_dup(im0, known)
+            except Exception:
+                who, dist = None, 0
+            if who:
+                dupes.append((os.path.basename(p), who, dist))
+                log.info("跳过重复：%s ≈ %s (距离%d)", os.path.basename(p), who, dist)
+            else:
+                keep.append(p)
+        todo = keep
+        if dupes and not a.quiet:
+            print(f"检测到 {len(dupes)} 张重复，已跳过（--force 可强制做）")
+            for f, w, d in dupes[:5]:
+                print(f"  {f} ≈ {w}")
+
+    if not todo:
+        if not a.quiet:
+            print("没有需要处理的图。")
+        return 0
+
+    if not a.quiet:
+        print()
+    ok, fail = [], []
+    t0 = time.time()
+    jobs = a.jobs or min(4, (os.cpu_count() or 2))
+    tasks = []
+    for p in todo:
+        name = a.name if (a.name and len(todo) == 1) else X.safe_name(os.path.splitext(os.path.basename(p))[0])
+        idx = max([r["no"] for r in rows], default=0) + len(tasks) + 1
+        tasks.append((p, name, idx, out, bead_mm, a.no_premium))
+
+    if a.dry:
+        for p, name, idx, *_ in tasks:
+            im, notes = X.preprocess(p)
+            scene = is_scene(im)
+            how = "场景" if scene else ("透明底" if "透明底" in notes else "待抠")
+            if not a.quiet:
+                print(f"[{idx:02d}] {name}  {im.size}  场景={scene}  预处理={notes or '—'}  (dry)")
+        return 0
+
+    def handle(res, task):
+        r, q, pal, info = res
+        if info.get("err"):
+            fail.append((task[1], info["err"]))
+            log.error("失败 %s: %s", task[1], info["err"])
+            if not a.quiet:
+                print(f"[{task[2]:02d}] {task[1]}  失败：{info['err']}")
+            return
+        rows.append(r)
+        if q:
+            prem[:] = [x for x in prem if x["no"] != r["no"]] + [q]
+        ok.append((r, q, pal, info))
+        log.info("完成 %s %sx%s %s色 %s颗 还原%.1f%% 评级%s",
+                 r["name"], r["cols"], r["rows"], r["colors"], r["beads"],
+                 r["fidelity"]*100, r["grade"])
+        if not a.quiet:
+            tail = f"  精品 {q['colors']}色/{q['beads']}颗" if q else "  精品 压不下"
+            print(f"[{r['no']:02d}] {r['name']}  {info['how']}  评级{r['grade']}")
+            print(f"      高保真 {r['cols']}×{r['rows']} {r['colors']}色 {r['beads']}颗 "
+                  f"还原{r['fidelity']*100:.1f}% 约{r['cm']}cm{tail}")
+
+    if jobs <= 1 or len(tasks) == 1:
+        for t in tasks:
+            handle(process_one(t), t)
+    else:
+        from concurrent.futures import ProcessPoolExecutor, as_completed
+        with ProcessPoolExecutor(max_workers=jobs) as ex:
+            futs = {ex.submit(process_one, t): t for t in tasks}
+            for fu in as_completed(futs):
+                handle(fu.result(), futs[fu])
+
+    rows.sort(key=lambda x: x["no"]); prem.sort(key=lambda x: x["no"])
+    json.dump(rows, open(rows_json, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    json.dump(prem, open(prem_json, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+
+    # PDF 分页
+    pdfs = []
+    if a.pdf:
+        for r, q, pal, info in ok:
+            try:
+                src = os.path.join(r["path"], "03_色彩图.png")
+                dst = os.path.join(r["path"], "05_打印版A4.pdf")
+                _, n = X.chart_to_pdf(src, dst)
+                pdfs.append((r["name"], n))
+            except Exception as e:
+                log.error("PDF 失败 %s: %s", r["name"], e)
+
+    import subprocess
+    for script in ("make_excel2.py", "cleanup.py"):
+        rr = subprocess.run([sys.executable, os.path.join(HERE, script)],
+                            capture_output=True, text=True, encoding="utf-8", errors="replace")
+        if rr.returncode != 0 and not a.quiet:
+            print(f"  !! {script} 失败：{(rr.stderr or '')[-200:]}")
+
+    gal = X.gallery(out, rows)
+
+    dt = time.time() - t0
+    lines = ["# 运行报告", "",
+             f"- 时间：{time.strftime('%Y-%m-%d %H:%M:%S')}",
+             f"- 素材目录：`{a.src}`", f"- 输出目录：`{out}`",
+             f"- 豆径：{bead_mm} mm", f"- 并行：{jobs}", f"- 耗时：{dt:.0f} 秒",
+             f"- 完成 {len(ok)} 件 / 失败 {len(fail)} 件 / 跳过重复 {len(dupes)} 件", ""]
+    if ok:
+        lines += ["| 编号 | 作品 | 评级 | 高保真 | 精品版 |", "|---|---|---|---|---|"]
+        for r, q, pal, info in ok:
+            lines.append(f"| {r['no']:02d} | {r['name']} | {r['grade']} | {r['cols']}×{r['rows']} / "
+                         f"{r['colors']}色 / {r['beads']}颗 / {r['fidelity']*100:.1f}% / 约{r['cm']}cm | "
+                         + (f"{q['cols']}×{q['rows']} / {q['colors']}色 / {q['beads']}颗" if q else "—")
+                         + " |")
+        lines += ["", "## 文案标题变体（可 A/B 测试）", ""]
+        for r, q, pal, info in ok[:5]:
+            for t in X.title_variants(r["name"], r["cols"], r["rows"], r["colors"], r["beads"]):
+                lines.append(f"- {t}")
+        lines += ["", "## 发布排期建议", ""]
+        sch = X.schedule(len(ok))
+        lines.append("、".join(sch[:12]) + ("…" if len(sch) > 12 else ""))
+        lines += ["", X.competitor_table([r for r, _, _, _ in ok]), ""]
+        lines += ["", "## 素材溯源", "", "| 文件 | MD5 |", "|---|---|"]
+        for r, q, pal, info in ok:
+            try:
+                sn = X.source_note(os.path.join(a.src, r["file"]))
+                lines.append(f'| {sn["file"]} | `{sn["md5"]}` |')
+            except Exception:
+                pass
+        lines += ["", "## 采购清单（按件）", ""]
+        for r, q, pal, info in ok:
+            lines.append(X.purchase_md(r["name"], pal, bead_mm))
+            lines.append("")
+    if dupes:
+        lines += ["## 跳过的重复图", ""] + [f"- `{f}` ≈ 已有「{w}」（差异 {d}）" for f, w, d in dupes]
+    if fail:
+        lines += ["", f"## 失败 {len(fail)} 件", ""] + [f"- {n}：{e}" for n, e in fail]
+    if pdfs:
+        lines += ["", "## 打印分页 PDF", ""] + [f"- {n}：{p} 页" for n, p in pdfs]
+    report = os.path.join(out, "运行报告.md")
+    open(report, "w", encoding="utf-8").write("\n".join(lines) + "\n")
+
+    if not a.quiet:
+        print(f"\n完成 {len(ok)} 件，失败 {len(fail)} 件，跳过重复 {len(dupes)} 件，用时 {dt:.0f} 秒")
+        print(f"台账：{os.path.join(out, '作品清单.xlsx')}")
+        print(f"画廊：{gal}")
+        print(f"报告：{report}")
+    return 0 if not fail else 2
+
+
+def run_check(out, rows, prem):
+    """全量体检：文件齐全 / 尺寸对 / 图纸格子够大 / 有评级"""
+    import json as _j
+    bad = []
+    for r in rows:
+        d = os.path.join(out, f'{r["no"]:02d}_{r["name"]}')
+        for f in ("01_原图.png", "02_成品图.png", "03_色彩图.png", "04_对比图.png"):
+            p = os.path.join(d, f)
+            if not os.path.exists(p):
+                bad.append(f'{r["name"]}: 缺 {f}')
+            elif os.path.getsize(p) < 5000:
+                bad.append(f'{r["name"]}: {f} 过小')
+        ch = os.path.join(d, "03_色彩图.png")
+        if os.path.exists(ch):
+            w, _ = Image.open(ch).size
+            cell = (w - 192) / max(r["cols"], 1)
+            if cell < 19.5:
+                bad.append(f'{r["name"]}: 图纸格子 {cell:.0f}px < 20，色号可能看不清')
+        if not r.get("grade"):
+            bad.append(f'{r["name"]}: 缺评级')
+    print(f"体检 {len(rows)} 件，问题 {len(bad)} 处")
+    for b in bad[:20]:
+        print("  !", b)
+    if not bad:
+        print("✓ 全部通过")
+    return 0 if not bad else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
