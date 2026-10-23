@@ -64,8 +64,11 @@ def main():
     # 4) 品牌
     print("\n品牌：")
     b = CFG["brand"]
-    line(OK, "名称", b["name"])
-    line(OK, "水印", b.get("watermark") or "@" + b["name"])
+    _ph = b["name"] in ("你的品牌名", "我的品牌", "") or b["name"].startswith("你的")
+    line(WARN if _ph else OK, "名称", b["name"] + ("   ← 还没改，出的图会印这个名字" if _ph else ""))
+    line(WARN if _ph else OK, "水印", b.get("watermark") or "@" + b["name"])
+    if _ph:
+        issues.append("品牌名还是占位符，改 config.json 的 brand.name / brand.watermark")
     line(OK, "豆径", f'{CFG["bead"]["diameter_mm"]} mm')
 
     # 5) 模块自检

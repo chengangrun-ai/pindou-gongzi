@@ -38,6 +38,15 @@ python scripts/selftest.py    # 自造一张图跑通全流程（约 60 秒）
 }
 ```
 
+**⚠️ 装完必须先改 `brand.name` 和 `brand.watermark`**——图纸上印的是使用者自己的名字，
+不是作者的。默认占位符 `@你的品牌名`，不改会直接印在成品上。
+
+个人配置建议写 `config.local.json`（不入库、优先级更高）：
+
+```json
+{ "brand": { "name": "你的品牌名", "watermark": "@你的品牌名" } }
+```
+
 环境变量可临时覆盖：`PINDOU_SRC` / `PINDOU_OUT` / `PINDOU_BRAND` / `PINDOU_CONFIG` / `PINDOU_FONT`。
 
 详细用法见 `README.md`。

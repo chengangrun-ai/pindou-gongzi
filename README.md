@@ -42,10 +42,25 @@ cp -R SKILL.md README.md config.json requirements.txt scripts references screens
 
 然后把仓库链接丢给 agent，它会按 `SKILL.md` 的指引加载所需文件。
 
+### ⚠️ 装完第一件事：改成你的品牌
+
+图纸上的水印是**你自己的名字**，不是作者的。默认是占位符 `@你的品牌名`，不改就会印在图上。
+
+```bash
+# 方式一：直接改 config.json（会进 git，适合你就是仓库主人）
+#   brand.name      → 你的品牌名
+#   brand.watermark → @你的品牌名
+
+# 方式二：建 config.local.json（不入库，推荐 fork 后使用）
+echo '{"brand":{"name":"你的品牌名","watermark":"@你的品牌名"}}' > config.local.json
+```
+
+`config.local.json` 优先级高于 `config.json`，且已在 `.gitignore` 里，不会被提交。
+
 ### 手动验证
 
 ```bash
-python scripts/doctor.py      # 依赖 / 字体 / 路径
+python scripts/doctor.py      # 依赖 / 字体 / 路径 / 品牌是否已改
 python scripts/selftest.py    # 自造一张图跑通全流程
 ```
 

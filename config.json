@@ -1,9 +1,9 @@
 {
   "brand": {
-    "name": "拼豆大帝",
-    "en": "PINDOU DADI",
+    "name": "你的品牌名",
+    "en": "YOUR BRAND",
     "color": "#C6705C",
-    "watermark": "@拼豆大帝",
+    "watermark": "@你的品牌名",
     "footer": true
   },
   "paths": {

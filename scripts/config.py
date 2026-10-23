@@ -17,10 +17,10 @@ CONFIG_PATH = Path(os.environ.get("PINDOU_CONFIG", SKILL_DIR / "config.json"))
 
 DEFAULTS = {
     "brand": {
-        "name": "拼豆大帝",
-        "en": "PINDOU DADI",
+        "name": "你的品牌名",
+        "en": "YOUR BRAND",
         "color": "#C6705C",
-        "watermark": "@拼豆大帝",
+        "watermark": "@你的品牌名",
         "footer": True
     },
     "paths": {
@@ -78,6 +78,13 @@ def load(path=None):
             cfg = _merge(cfg, json.loads(p.read_text(encoding="utf-8")))
         except Exception as e:
             print(f"[config] 读取 {p} 失败，用默认值：{e}")
+    # 个人配置：config.local.json 覆盖 config.json（已在 .gitignore 里）
+    local = p.parent / "config.local.json"
+    if local.exists():
+        try:
+            cfg = _merge(cfg, json.loads(local.read_text(encoding="utf-8")))
+        except Exception as e:
+            print(f"[config] 读取 {local} 失败：{e}")
     # 环境变量覆盖（适合 CI / 临时改）
     for env, keys in (("PINDOU_SRC", ("paths", "src")),
                       ("PINDOU_OUT", ("paths", "out")),

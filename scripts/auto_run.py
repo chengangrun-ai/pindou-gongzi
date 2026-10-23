@@ -242,6 +242,16 @@ def main():
     except Exception:
         pass
 
+    # 品牌没改就警告——不然图上会印着别人的名字
+    _bn = CFG["brand"]["name"]
+    if _bn in ("你的品牌名", "我的品牌", "") or _bn.startswith("你的"):
+        print("=" * 62)
+        print("⚠️  还没设置你的品牌名")
+        print(f"   现在出的图会印「{CFG['brand'].get('watermark')}」")
+        print("   改 config.json 里的 brand.name 和 brand.watermark，再重跑")
+        print("=" * 62)
+        print()
+
     bead_mm = a.bead_mm or CFG["bead"]["diameter_mm"]
     out = a.out
     os.makedirs(out, exist_ok=True)
