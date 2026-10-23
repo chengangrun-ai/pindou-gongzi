@@ -94,6 +94,35 @@ def snap(grid, pal, name="mard"):
 
 
 if __name__ == "__main__":
-    print("可用色板:", available())
-    for n in available():
-        print(f"  {n}: {len(load(n))} 色")
+    import sys
+    names = available()
+    if "--list" in sys.argv or len(sys.argv) == 1:
+        print("可用色板：")
+        for n in names:
+            d = load(n)
+            print(f"  {n:10s} {len(d):3d} 色   示例 {d[0][0]} {d[0][1]}")
+        print("\n切换：config.json 的 palette.name 改成上面的名字")
+
+
+def score(pal, name="mard"):
+    """这套颜色用该品牌色板还原的加权误差（越小越贴合）"""
+    brand = load(name)
+    if not brand or not pal:
+        return 1e9
+    brand_lab = np.stack([_lab(_rgb(h)) for _, h in brand])
+    total, wsum = 0.0, 0
+    for entry in pal:
+        lb = _lab(_rgb(entry[1]))
+        d = float(np.linalg.norm(brand_lab - lb, axis=1).min())
+        w = max(int(entry[3]), 1)
+        total += d * w
+        wsum += w
+    return total / max(wsum, 1)
+
+
+def pick(pal, names=None):
+    """在这几套色板里挑最贴合的一个 → (名字, [(名字, 分数), ...])"""
+    names = names or available()
+    res = [(n, score(pal, n)) for n in names]
+    res.sort(key=lambda x: x[1])
+    return res[0][0], res
