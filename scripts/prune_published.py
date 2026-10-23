@@ -26,7 +26,9 @@ from config import CFG
 OUT = CFG["paths"]["out"]
 XLSX = os.path.join(OUT, "作品清单.xlsx")
 
-PUBLISHED = ("已发布", "已发", "发布", "1", "是", "y", "yes", "✓", "✔", "☑", "√")
+# 注意：不能写 "发布"——它是 "未发布" 的子串，会把全部行都命中
+PUBLISHED = ("已发布", "已发", "已上架", "published", "done")
+TICKS = ("1", "☑", "✓", "✔", "√", "y", "yes", "是")
 
 
 def load_published():
@@ -49,7 +51,10 @@ def load_published():
             continue
         stat = str(r[i_stat] or "").strip().lower() if i_stat is not None else ""
         tick = str(r[i_tick] or "").strip() if i_tick is not None else ""
-        if any(p.lower() in stat for p in PUBLISHED) or tick in ("☑", "✓", "✔", "1", "√"):
+        published = (any(p in stat for p in PUBLISHED)
+                     or (stat and "未" not in stat and stat in TICKS)
+                     or tick in TICKS)
+        if published:
             out.append(name)
     return out
 
@@ -66,17 +71,26 @@ def main():
         return 1
 
     print(f"已发布 {len(names)} 件，将删除以下目录：\n")
+
+    def find_dir(base, n):
+        """目录名带编号前缀（45_落雪糕），按后缀匹配"""
+        if not os.path.isdir(base):
+            return None
+        for d in os.listdir(base):
+            if d == n or (d[:2].isdigit() and d[2:3] == "_" and d[3:] == n):
+                return os.path.join(base, d)
+        return None
+
     plan = []
     for n in names:
-        for sub in ("", os.path.join("精品版", ""), os.path.join("精品版", "无LOGO版")):
-            d = os.path.join(OUT, sub, n) if sub else os.path.join(OUT, n)
-            if os.path.isdir(d):
+        for sub in ("", "精品版", os.path.join("精品版", "无LOGO版")):
+            d = find_dir(os.path.join(OUT, sub) if sub else OUT, n)
+            if d:
                 plan.append(d)
     for d in plan:
         print("  -", os.path.relpath(d, OUT))
 
-    keep = [os.path.join(OUT, "无LOGO版", n) for n in names
-            if os.path.isdir(os.path.join(OUT, "无LOGO版", n))]
+    keep = [d for d in (find_dir(os.path.join(OUT, "无LOGO版"), n) for n in names) if d]
     print(f"\n保留 {len(keep)} 个无标版：")
     for d in keep:
         print("  ✓", os.path.relpath(d, OUT))
