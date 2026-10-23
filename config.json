@@ -62,5 +62,9 @@
     "grade": true,
     "csv": true,
     "auto_width": true
+  },
+  "palette": {
+    "name": "mard",
+    "enabled": true
   }
 }

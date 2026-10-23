@@ -38,6 +38,9 @@ python scripts/selftest.py    # 自造一张图跑通全流程（约 60 秒）
 }
 ```
 
+**色号默认吸附到 MARD 真实色板**（291 色，`palettes/mard.json`），
+客户拿到的是能直接下单的色号。改 `config.json` 的 `palette` 可开关或换品牌。
+
 **⚠️ 装完必须先改 `brand.name` 和 `brand.watermark`**——图纸上印的是使用者自己的名字，
 不是作者的。默认占位符 `@你的品牌名`，不改会直接印在成品上。
 

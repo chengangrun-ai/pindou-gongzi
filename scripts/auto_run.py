@@ -29,6 +29,7 @@ import brand as BR
 import floatcard as FC
 import lowcolor as L
 import extras as X
+import palettes as PAL
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 EXTS = (".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tif", ".tiff", ".ico", ".jfif")
@@ -83,6 +84,19 @@ def speckle(g):
     return L.speckle_vec(g)
 
 
+# ---------------- 品牌色板吸附 ----------------
+def _snap(g, p):
+    """把自编色号吸附到品牌色板（MARD 等），拿不到就原样返回"""
+    pc = CFG.get("palette", {})
+    if not pc.get("enabled", False):
+        return g, p
+    try:
+        return PAL.snap(g, p, pc.get("name", "mard"))
+    except Exception as e:
+        print(f"  ! 色板吸附失败（{e}），保留原色号")
+        return g, p
+
+
 # ---------------- 出图 ----------------
 def _save_all(d, dn, name, cut, g, p, scene, cell=12):
     os.makedirs(d, exist_ok=True); os.makedirs(dn, exist_ok=True)
@@ -108,6 +122,7 @@ def do_high(cut, name, idx, scene, out, lineart=False):
         small = cut.resize((c*3, max(3, int(cut.height*c*3/cut.width))), Image.LANCZOS)
         g, p = L.beadify_line(C.on_white(small), c, levels=4)
         g = np.where(FC.grid_alpha(small, c) > 0.35, g, -1) if small.mode == "RGBA" else g
+        g, p = _snap(g, p)
         d = os.path.join(out, f"{idx:02d}_{name}")
         dn = os.path.join(out, "无LOGO版", f"{idx:02d}_{name}")
         _save_all(d, dn, name, cut, g, p, scene, cell=12)
@@ -129,6 +144,7 @@ def do_high(cut, name, idx, scene, out, lineart=False):
         if s >= P.get("prune_fidelity", 0.975):   # 已经够好，不再往上试
             break
     g, p = best["grid"], best["pal"]
+    g, p = _snap(g, p)
     d = os.path.join(out, f"{idx:02d}_{name}")
     dn = os.path.join(out, "无LOGO版", f"{idx:02d}_{name}")
     _save_all(d, dn, name, cut, g, p, scene, cell=12)
@@ -145,6 +161,7 @@ def do_premium(cut, name, idx, scene, out, lineart=False):
         small = cut.resize((c*3, max(3, int(cut.height*c*3/cut.width))), Image.LANCZOS)
         g, p = L.beadify_line(C.on_white(small), c, levels=3)
         g = np.where(FC.grid_alpha(small, c) > 0.35, g, -1) if small.mode == "RGBA" else g
+        g, p = _snap(g, p)
         d = os.path.join(out, "精品版", f"{idx:02d}_{name}")
         dn = os.path.join(out, "精品版", "无LOGO版", f"{idx:02d}_{name}")
         _save_all(d, dn, name, cut, g, p, scene, cell=14)
@@ -173,6 +190,7 @@ def do_premium(cut, name, idx, scene, out, lineart=False):
     if not best:
         return None
     g, p = best["grid"], best["pal"]
+    g, p = _snap(g, p)
     d = os.path.join(out, "精品版", f"{idx:02d}_{name}")
     dn = os.path.join(out, "精品版", "无LOGO版", f"{idx:02d}_{name}")
     _save_all(d, dn, name, cut, g, p, scene, cell=14)

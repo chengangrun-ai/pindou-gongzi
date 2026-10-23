@@ -96,6 +96,25 @@ python scripts/auto_run.py --check           # 已有产物体检
 python scripts/wm_hint.py                    # 扫疑似水印位置
 ```
 
+## 色号：真实品牌色板
+
+图纸上的色号不是自己编的，是**真实能买到的品牌色号**。
+
+内置 **MARD 291 色**（社区开源映射数据），出图前把算出来的颜色吸附到最近的 MARD 色：
+
+```
+自编色号  K1 #2A2A2A  →  MARD  H06 #2F2B2F
+自编色号  W1 #FAFAFA  →  MARD  H02 #FEFFFF
+```
+
+`config.json` 里可开关和换品牌：
+
+```json
+{ "palette": { "name": "mard", "enabled": true } }
+```
+
+关掉就回到自编色号（`"enabled": false`）。
+
 ## 四种处理模式
 
 任何图片进来，都会被分到其中一条路。
