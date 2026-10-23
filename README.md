@@ -105,41 +105,10 @@ grabCut 前景分割 + 覆盖率自检，抠不干净自动换方法。适合真
 
 ## Gallery
 
-### 万圣 Kitty
+[![原图 → 拼豆](screenshots/halloween-kitty-compare.png)](screenshots/halloween-kitty-compare.png) [![飞龙 · 4 色](screenshots/dragon-product.png)](screenshots/dragon-product.png) [![弓箭手 · 带色号图纸](screenshots/archer-chart.png)](screenshots/archer-chart.png)
 
-[![万圣Kitty 成品图](screenshots/halloween-kitty-product.png)](screenshots/halloween-kitty-product.png) [![万圣Kitty 色彩图](screenshots/halloween-kitty-chart.png)](screenshots/halloween-kitty-chart.png) [![万圣Kitty 对比图](screenshots/halloween-kitty-compare.png)](screenshots/halloween-kitty-compare.png)
+> 左：万圣Kitty 原图与拼豆对比（7 色 4613 颗）｜中：纹身手稿「飞龙」4 色 16198 颗｜右：带色号的图纸，每格可读
 
-> 224 格 55 色 → 精品版 96 格 7 色 4613 颗。幽灵的轮廓、南瓜桶、蝴蝶结全在。
-
-### 飞龙（纹身手稿）
-
-[![飞龙 成品图](screenshots/dragon-product.png)](screenshots/dragon-product.png) [![飞龙 色彩图](screenshots/dragon-chart.png)](screenshots/dragon-chart.png) [![飞龙 对比图](screenshots/dragon-compare.png)](screenshots/dragon-compare.png)
-
-> 256 格 **4 色** 16198 颗。线稿模式的典型输出——两档黑、一档灰、一档白。
-
-### 弓箭手（纹身手稿）
-
-[![弓箭手 成品图](screenshots/archer-product.png)](screenshots/archer-product.png) [![弓箭手 色彩图](screenshots/archer-chart.png)](screenshots/archer-chart.png) [![弓箭手 对比图](screenshots/archer-compare.png)](screenshots/archer-compare.png)
-
-> 256 格 4 色 8035 颗。细线全部连续，没有断成点阵。
-
-### 曼陀罗
-
-[![曼陀罗 成品图](screenshots/mandala-product.png)](screenshots/mandala-product.png) [![曼陀罗 色彩图](screenshots/mandala-chart.png)](screenshots/mandala-chart.png) [![曼陀罗 对比图](screenshots/mandala-compare.png)](screenshots/mandala-compare.png)
-
-> 256 格 4 色 17513 颗。同心花纹在高格数下保住了。
-
-### 完整路飞
-
-[![完整路飞 成品图](screenshots/luffy-product.png)](screenshots/luffy-product.png) [![完整路飞 色彩图](screenshots/luffy-chart.png)](screenshots/luffy-chart.png) [![完整路飞 对比图](screenshots/luffy-compare.png)](screenshots/luffy-compare.png)
-
-> 128 格 45 色。这张压不到低色号——细节太多，硬压会碎，所以只出高保真版。
-
-### 龙首
-
-[![龙首 成品图](screenshots/dragon-head-product.png)](screenshots/dragon-head-product.png) [![龙首 色彩图](screenshots/dragon-head-chart.png)](screenshots/dragon-head-chart.png) [![龙首 对比图](screenshots/dragon-head-compare.png)](screenshots/dragon-head-compare.png)
-
-> 256 格 32 色 7928 颗。grabCut 分割，背景干净。
 
 ## Architecture
 
