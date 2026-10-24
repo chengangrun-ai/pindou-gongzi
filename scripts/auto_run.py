@@ -210,8 +210,8 @@ def do_high(cut, name, idx, scene, out, lineart=False):
     if _info:
         print(f"      色号 {_info['before']} → {_info['after']}"
               f"（还原 {_info['fidelity_before']:.4f} → {_info['fidelity']:.4f}）")
-    d = os.path.join(out, f"{idx:02d}_{name}")
-    dn = os.path.join(out, "无LOGO版", f"{idx:02d}_{name}")
+    d = os.path.join(out, "社媒版")
+    dn = os.path.join(out, "交付版", f"{idx:02d}_{name}")
     _save_all(d, dn, name, cut, g, p, scene, cell=12)
     NR, NC = g.shape
     return dict(no=idx, name=name, cols=int(NC), rows=int(NR),

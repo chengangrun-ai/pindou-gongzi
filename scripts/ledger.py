@@ -129,74 +129,49 @@ def _safe_path(path):
         return alt
 
 
-def build(out, thumb=88, with_text=True, order=None):
+def build(out, thumb=80, with_text=False, order=None):
+    """只产出一张清单：图 / 编号 / 作品名 / 规格 / 已发社媒 / 已交付"""
     rows = _load(out)
     if not rows:
         return 1
-    cats = order or CFG.get("categories", {}).get("order") or ["动漫人物", "风景", "墨纹"]
-    cats = [c for c in cats if any(r.get("cat") == c for r in rows)]
-    for c in {r.get("cat") for r in rows}:
-        if c and c not in cats:
-            cats.append(c)
+
+    import openpyxl
+    from openpyxl.drawing.image import Image as XLImage
+    from openpyxl.styles import Alignment, Font, PatternFill
+    from openpyxl.utils import get_column_letter
+    from PIL import Image as _I
+
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "作品清单"
+    HDR = ["图", "编号", "作品名", "格数", "色数", "豆数", "尺寸", "已发社媒", "已交付", "备注"]
+    WID = [14, 6, 18, 12, 7, 10, 14, 10, 10, 20]
+    ws.append(HDR)
+    for i, w in enumerate(WID, 1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+    for c in ws[1]:
+        c.font = Font(bold=True, color="FFFFFF")
+        c.fill = PatternFill("solid", fgColor="C6705C")
+        c.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 26
 
     tmpdir = tempfile.mkdtemp(prefix="ledger_")
-    wb = openpyxl.Workbook()
-    wb.remove(wb.active)
+    for r in sorted(rows, key=lambda x: x["no"]):
+        ws.append(["", r["no"], r["name"],
+                   f'{r["cols"]}×{r["rows"]}' if r.get("cols") else "—",
+                   r.get("colors") or "—", r.get("beads") or "—",
+                   f'约{round((r["cols"] or 0) * 0.5)}cm' if r.get("cols") else "—",
+                   "☐", "☐", ""])
+        rr = ws.max_row
+        ws.row_dimensions[rr].height = thumb * 0.8
+        for col in (2, 5, 8, 9):
+            ws.cell(rr, col).alignment = Alignment(horizontal="center", vertical="center")
+        src = _find_img(r, out)
+        tp = _thumb(src, thumb, tmpdir, str(r["no"]))
+        if tp:
+            img = XLImage(tp); img.width = img.height = thumb
+            ws.add_image(img, f"A{rr}")
 
-    H_MAIN = ["图", "编号", "作品名", "规格", "色数", "豆数", "评级", "售价", "标题", "状态"]
-    W_MAIN = [THUMB_COL_W, 6, 16, 22, 7, 9, 7, 11, 30, 10]
-    H_TEXT = ["图", "编号", "作品名", "正文（复制用）", "标签（复制用）"]
-    W_TEXT = [THUMB_COL_W, 6, 16, 56, 34]
-
-    for cat in cats:
-        items = sorted([r for r in rows if r.get("cat") == cat], key=lambda x: x["no"])
-        if not items:
-            continue
-
-        # 概览
-        ws = wb.create_sheet(cat)
-        ws.append(H_MAIN)
-        _style_header(ws, W_MAIN)
-        for r in items:
-            ws.append(["", r["no"], r["name"],
-                       f'{r["cols"]}×{r["rows"]} / 约{round(r["cols"] * 0.5, 1)}cm',
-                       r.get("colors") or "—", r.get("beads") or "—",
-                       r.get("grade") or "—", _price(r),
-                       f'拼豆图纸 | {r["name"]}', "未发布"])
-            rr = ws.max_row
-            ws.row_dimensions[rr].height = thumb * 0.78
-            ws.cell(rr, 3).alignment = Alignment(vertical="center")
-            ws.cell(rr, 2).alignment = Alignment(horizontal="center", vertical="center")
-            src = _find_img(r, out)
-            tp = _thumb(src, thumb, tmpdir, f'{cat}_{r["no"]}')
-            if tp:
-                img = XLImage(tp)
-                img.width = img.height = thumb
-                ws.add_image(img, f"A{rr}")
-
-        # 文案
-        if with_text:
-            ws2 = wb.create_sheet(f"{cat}·文案")
-            ws2.append(H_TEXT)
-            _style_header(ws2, W_TEXT)
-            for r in items:
-                ws2.append(["", r["no"], r["name"], copy_text(r), TAGS.get(cat, "")])
-                rr = ws2.max_row
-                ws2.row_dimensions[rr].height = 76
-                ws2.cell(rr, 4).alignment = Alignment(wrap_text=True, vertical="top")
-                ws2.cell(rr, 5).alignment = Alignment(wrap_text=True, vertical="top")
-                src = _find_img(r, out)
-                tp = _thumb(src, 64, tmpdir, f't_{cat}_{r["no"]}')
-                if tp:
-                    img = XLImage(tp)
-                    img.width = img.height = 64
-                    ws2.add_image(img, f"A{rr}")
-
-        # 分类 CSV / TXT
-        with open(_safe_path(os.path.join(out, f"文案_{cat}.txt")), "w", encoding="utf-8") as f:
-            for r in items:
-                f.write(f'【{r["no"]:02d} {r["name"]}】\n{copy_text(r)}\n{TAGS.get(cat, "")}\n{"-" * 40}\n')
-
+    ws.freeze_panes = "C2"
+    ws.auto_filter.ref = ws.dimensions
     xlsx = os.path.join(out, "作品清单.xlsx")
     try:
         os.remove(xlsx)
@@ -204,9 +179,7 @@ def build(out, thumb=88, with_text=True, order=None):
         xlsx = _safe_path(xlsx)
     wb.save(xlsx)
     shutil.rmtree(tmpdir, ignore_errors=True)
-    print(f"已生成 {xlsx}（{len(cats)} 个分类，每类 2 个 sheet）")
-    for c in cats:
-        print(f"  {c}: {len([r for r in rows if r.get('cat') == c])} 件")
+    print(f"清单已生成：{xlsx}（{len(rows)} 件）")
     return 0
 
 
