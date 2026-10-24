@@ -77,8 +77,10 @@ def main():
             errs += fail(f'{r["name"]}: 豆数 {r["beads"]} ≠ {r["cols"]}×{r["rows"]}')
 
     # 3) 交付版 + 4) 社媒版
+    import glob as _g
     for r in rows:
-        d = os.path.join(out, "交付版", f'{r["no"]:02d}_{r["name"]}')
+        _hit = _g.glob(os.path.join(out, "交付版", "*", f'{r["no"]:02d}_{r["name"]}'))
+        d = _hit[0] if _hit else os.path.join(out, "交付版", f'{r["no"]:02d}_{r["name"]}')
         ch = os.path.join(d, "色号图.png")
         if not os.path.exists(ch):
             errs += fail(f'{r["name"]}: 缺交付版色号图')
@@ -89,7 +91,8 @@ def main():
                 errs += fail(f'{r["name"]}: 色号图宽 {w} ≠ 应为 {want}')
         if not os.path.exists(os.path.join(d, "成品图.jpg")):
             errs += fail(f'{r["name"]}: 缺交付版成品图')
-        sm = os.path.join(out, "社媒版", f'{r["no"]:02d}_{r["name"]}')
+        _sh = _g.glob(os.path.join(out, "社媒版", "*", f'{r["no"]:02d}_{r["name"]}'))
+        sm = _sh[0] if _sh else os.path.join(out, "社媒版", f'{r["no"]:02d}_{r["name"]}')
         if not os.path.isdir(sm):
             errs += fail(f'{r["name"]}: 缺社媒版目录')
         else:

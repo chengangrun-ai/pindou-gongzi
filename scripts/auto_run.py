@@ -172,7 +172,7 @@ def _snap(g, p):
 
 
 # ---------------- 出图 ----------------
-def _save_all(d, dn, name, cut, g, p, scene, cell=12, idx=None):
+def _save_all(d, dn, name, cut, g, p, scene, cell=12, idx=None, cat=None):
     """社媒版：一套四张（发笔记用）；交付版：色号图 + 成品图
 
     d   = 社媒版目录
@@ -180,7 +180,8 @@ def _save_all(d, dn, name, cut, g, p, scene, cell=12, idx=None):
     idx = 编号
     """
     pre = f"{idx:02d}_" if idx is not None else ""
-    sd = os.path.join(d, f"{pre}{name}")          # 社媒版按作品分目录
+    sd = os.path.join(d, cat or "", f"{pre}{name}")   # 社媒版/<分类>/<作品>/
+    dn = os.path.join(os.path.dirname(dn), cat or "", os.path.basename(dn)) if cat else dn
     os.makedirs(sd, exist_ok=True)
     os.makedirs(dn, exist_ok=True)
 
@@ -209,9 +210,10 @@ def do_high(cut, name, idx, scene, out, lineart=False):
         g = np.where(FC.grid_alpha(small, c) > 0.35, g, -1) if small.mode == "RGBA" else g
         g, p = _snap(g, p)
         g, p, _info = _simplify(g, p, C.on_white(small))
-        d = os.path.join(out, f"{idx:02d}_{name}")
-        dn = os.path.join(out, "无LOGO版", f"{idx:02d}_{name}")
-        _save_all(d, dn, name, cut, g, p, scene, cell=12, idx=idx)
+        cat = CAT.classify(name, scene=scene, lineart=True)
+        d = os.path.join(out, "社媒版")
+        dn = os.path.join(out, "交付版", f"{idx:02d}_{name}")
+        _save_all(d, dn, name, cut, g, p, scene, cell=12, idx=idx, cat=cat)
         NR, NC = g.shape
         return dict(no=idx, name=name, cols=int(NC), rows=int(NR),
                     beads=int((g >= 0).sum()), colors=len(p),
@@ -239,9 +241,10 @@ def do_high(cut, name, idx, scene, out, lineart=False):
     if _info:
         print(f"      色号 {_info['before']} → {_info['after']}"
               f"（还原 {_info['fidelity_before']:.4f} → {_info['fidelity']:.4f}）")
+    cat = CAT.classify(name, scene=scene, lineart=lineart)
     d = os.path.join(out, "社媒版")
     dn = os.path.join(out, "交付版", f"{idx:02d}_{name}")
-    _save_all(d, dn, name, cut, g, p, scene, cell=12, idx=idx)
+    _save_all(d, dn, name, cut, g, p, scene, cell=12, idx=idx, cat=cat)
     NR, NC = g.shape
     return dict(no=idx, name=name, cols=int(NC), rows=int(NR),
                 beads=int((g >= 0).sum()), colors=len(p),
