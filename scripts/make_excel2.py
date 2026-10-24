@@ -10,16 +10,16 @@ from openpyxl.utils import get_column_letter
 from PIL import Image
 
 OUT = r"C:\Users\Administrator\Downloads\拼豆成品"
-rows = json.load(open(os.path.join(OUT, "台账数据_高保真.json"), encoding="utf-8"))
+rows = json.load(open(dp(OUT, "台账数据_高保真.json"), encoding="utf-8"))
 _prem = {}
-_pp = os.path.join(OUT, "台账数据_精品版.json")
+_pp = dp(OUT, "台账数据_精品版.json")
 if os.path.exists(_pp):
     _prem = {r["no"]: r for r in json.load(open(_pp, encoding="utf-8"))}
 for r in rows:
     q = _prem.get(r["no"])
     r["p"] = q
 
-from config import CFG as _CFG
+from config import CFG as _CFG, dp
 BRAND = _CFG["brand"].get("watermark") or ("@" + _CFG["brand"]["name"])
 BEAD_MM = _CFG["bead"]["diameter_mm"]
 BASE_TAGS = ["#拼豆创意美学", "#拼豆", "#像素图", "#小红书拼豆大赛", "#我染上了拼豆", "#设计", "#手工日常"]
@@ -102,7 +102,7 @@ for i, (h, w) in enumerate(zip(head, widths), 1):
 ws.row_dimensions[1].height = 30
 
 thin = Side(style="thin", color="D8D6D2")
-TMP = os.path.join(OUT, "_thumbs")
+TMP = dp(OUT, "缩略图缓存")
 os.makedirs(TMP, exist_ok=True)
 
 for r, it in enumerate(rows, 2):

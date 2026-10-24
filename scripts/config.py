@@ -1,3 +1,4 @@
+import os
 # -*- coding: utf-8 -*-
 """config.py —— 所有可配置项集中在这里，不再改代码
 
@@ -131,6 +132,16 @@ def validate(cfg):
         if not isinstance(v, list) or not v or not all(isinstance(x, int) and x > 0 for x in v):
             pl[k] = DEFAULTS["pipeline"][k]; warns.append(f"pipeline.{k} 不是正整数列表，用默认")
     return cfg, warns
+
+
+DATA_SUB = "内部数据"
+
+
+def dp(out, name):
+    """内部数据路径（台账 / 备份 / 日志 / 缓存），统一收进「内部数据」文件夹"""
+    d = os.path.join(out, DATA_SUB)
+    os.makedirs(d, exist_ok=True)
+    return os.path.join(d, name)
 
 
 CFG, _warns = validate(load())

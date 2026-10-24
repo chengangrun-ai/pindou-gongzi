@@ -61,7 +61,7 @@ def main():
         print("  先跑 python doctor.py")
         return 1
 
-    from config import CFG
+    from config import CFG, dp
     tmp_src = tempfile.mkdtemp(prefix="pindou_test_")
     out = CFG["paths"]["out"]
     os.makedirs(out, exist_ok=True)
@@ -84,7 +84,7 @@ def main():
 
     # 4) 验证产物
     print("[3/4] 检查产物...")
-    rows = json.load(open(os.path.join(out, "台账数据_高保真.json"), encoding="utf-8"))
+    rows = json.load(open(dp(out, "台账数据_高保真.json"), encoding="utf-8"))
     mine = [x for x in rows if x["name"] == "自检样例"]
     if not mine:
         print("✗ 台账里没有新增条目"); shutil.rmtree(tmp_src, ignore_errors=True); return 1
@@ -97,9 +97,9 @@ def main():
 
     # 5) 清理测试件
     print("[4/4] 清理测试件...")
-    prem = os.path.join(out, "台账数据_精品版.json")
+    prem = dp(out, "台账数据_精品版.json")
     rows = [x for x in rows if x["no"] != rec["no"]]
-    json.dump(rows, open(os.path.join(out, "台账数据_高保真.json"), "w", encoding="utf-8"),
+    json.dump(rows, open(dp(out, "台账数据_高保真.json"), "w", encoding="utf-8"),
               ensure_ascii=False, indent=1)
     if os.path.exists(prem):
         p = [x for x in json.load(open(prem, encoding="utf-8")) if x["no"] != rec["no"]]

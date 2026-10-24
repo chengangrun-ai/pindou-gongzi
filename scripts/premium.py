@@ -11,7 +11,7 @@ OUT = M.OUT
 PRE = os.path.join(OUT, "精品版")
 COLS_LADDER = (96, 112, 128, 160)
 K_LADDER = (10, 12, 14, 16, 20, 24)
-from config import CFG as _C
+from config import CFG as _C, dp
 SPECKLE_MAX = _C["pipeline"]["speckle_max"]
 FID_MIN = _C["pipeline"]["fidelity_min"]
 
@@ -43,7 +43,7 @@ def load_cut(r):
     return im.convert("RGBA")   # alpha 全 255，走统一路径
 
 
-rows = json.load(open(os.path.join(OUT, "台账数据_高保真.json"), encoding="utf-8"))
+rows = json.load(open(dp(OUT, "台账数据_高保真.json"), encoding="utf-8"))
 TARGET = {35,36,37,38,40,41,42,43,44,45,46,47}
 rows = [r for r in rows if r["no"] in TARGET]
 prem = json.load(open(os.path.join(OUT,"台账数据_精品版.json"),encoding="utf-8")) if os.path.exists(os.path.join(OUT,"台账数据_精品版.json")) else []
@@ -105,6 +105,6 @@ dedup = {}
 for x in prem:
     dedup[x["no"]] = x
 prem = sorted(dedup.values(), key=lambda x: x["no"])
-json.dump(prem, open(os.path.join(OUT, "台账数据_精品版.json"), "w", encoding="utf-8"),
+json.dump(prem, open(dp(OUT, "台账数据_精品版.json"), "w", encoding="utf-8"),
           ensure_ascii=False, indent=1)
 print("DONE", len(prem), "/", len(rows))

@@ -20,7 +20,7 @@ import numpy as np
 from PIL import Image
 from scipy import ndimage
 
-from config import CFG
+from config import CFG, dp
 import batch34 as M
 import cutout as C
 import fidelity as F
@@ -109,7 +109,7 @@ def save_ledger(out, rows, name="台账数据_高保真.json"):
     import time as _t
     path = os.path.join(out, name)
     if os.path.exists(path):
-        bak = os.path.join(out, "台账备份")
+        bak = dp(out, "台账备份")
         os.makedirs(bak, exist_ok=True)
         try:
             n = len(json.load(open(path, encoding="utf-8")))
@@ -317,8 +317,8 @@ def main():
     bead_mm = a.bead_mm or CFG["bead"]["diameter_mm"]
     out = a.out
     os.makedirs(out, exist_ok=True)
-    rows_json = os.path.join(out, "台账数据_高保真.json")
-    prem_json = os.path.join(out, "台账数据_精品版.json")
+    rows_json = dp(out, "台账数据_高保真.json")
+    prem_json = dp(out, "台账数据_精品版.json")
     rows = json.load(open(rows_json, encoding="utf-8")) if os.path.exists(rows_json) else []
     prem = json.load(open(prem_json, encoding="utf-8")) if os.path.exists(prem_json) else []
 
@@ -328,7 +328,7 @@ def main():
     log = logging.getLogger("pindou")
     log.setLevel(logging.INFO)
     if not log.handlers:
-        fh = logging.FileHandler(os.path.join(out, "run.log"), encoding="utf-8")
+        fh = logging.FileHandler(dp(out, "运行日志.txt"), encoding="utf-8")
         fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
         log.addHandler(fh)
 

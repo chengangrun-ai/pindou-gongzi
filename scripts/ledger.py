@@ -32,7 +32,7 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from PIL import Image
 
-from config import CFG
+from config import CFG, dp
 
 HEAD_FILL = PatternFill("solid", fgColor="C6705C")
 TITLE_FONT = Font(bold=True, color="FFFFFF", size=11)
@@ -40,7 +40,7 @@ THUMB_COL_W = 14
 
 
 def _load(out):
-    p = os.path.join(out, "台账数据_高保真.json")
+    p = dp(out, "台账数据_高保真.json")
     if not os.path.exists(p):
         print("找不到台账：", p)
         return []
@@ -192,15 +192,6 @@ def build(out, thumb=88, with_text=True, order=None):
                     ws2.add_image(img, f"A{rr}")
 
         # 分类 CSV / TXT
-        with open(_safe_path(os.path.join(out, f"文案清单_{cat}.csv")), "w", newline="", encoding="utf-8-sig") as f:
-            w = csv.writer(f)
-            w.writerow(["编号", "作品名", "规格", "色数", "豆数", "评级", "售价", "标题", "正文", "标签", "状态"])
-            for r in items:
-                w.writerow([r["no"], r["name"], f'{r["cols"]}×{r["rows"]}',
-                            r.get("colors") or "", r.get("beads") or "",
-                            r.get("grade") or "", _price(r),
-                            f'拼豆图纸 | {r["name"]}', copy_text(r),
-                            TAGS.get(cat, ""), "未发布"])
         with open(_safe_path(os.path.join(out, f"文案_{cat}.txt")), "w", encoding="utf-8") as f:
             for r in items:
                 f.write(f'【{r["no"]:02d} {r["name"]}】\n{copy_text(r)}\n{TAGS.get(cat, "")}\n{"-" * 40}\n')
