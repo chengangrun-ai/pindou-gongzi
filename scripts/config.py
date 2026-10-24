@@ -57,6 +57,7 @@ DEFAULTS = {
         "prune_fidelity": 0.975,
         "preprocess_max": 2400
     },
+    "grid": {"max_cols": 160},
     "output": {"single": True, "fidelity_floor": 0.965, "min_colors": 4},
     "palette": {"name": "mard", "enabled": True},
     "excel": {"price": True, "grade": True, "csv": True, "auto_width": True}

@@ -39,6 +39,7 @@ EXTS = (".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tif", ".tiff", ".ico
 
 P = CFG["pipeline"]
 HI_LADDER = tuple(P["hi_cols"])
+MAX_COLS = int((CFG.get("grid") or {}).get("max_cols", 160))
 LOW_COLS = tuple(P["lo_cols"])
 LOW_K = tuple(P["lo_k"])
 SPECKLE_MAX = P["speckle_max"]
@@ -191,7 +192,7 @@ def do_high(cut, name, idx, scene, out, lineart=False):
                     beads=int((g >= 0).sum()), colors=len(p),
                     fidelity=0.99, path=d, thumb=os.path.join(d, "01_原图.png")), p
     best = None
-    for c in HI_LADDER:
+    for c in [x for x in HI_LADDER if x <= MAX_COLS] or [MAX_COLS]:
         small = cut.resize((c*3, max(3, int(cut.height*c*3/cut.width))), Image.LANCZOS)
         white = C.on_white(small)
         g, p = FG.beadify_fast(white, c, K=int(min(64, 20 + c/5)))
