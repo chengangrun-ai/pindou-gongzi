@@ -13,7 +13,7 @@
     python auto_run.py --bead-mm 2.6          # 豆径 mm
     python auto_run.py --force                # 重复图也照做
 """
-import os, sys, json, argparse, glob, time, traceback, logging
+import os, sys, json, argparse, glob, time, traceback, logging, shutil
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import numpy as np
@@ -104,6 +104,28 @@ def speckle(g):
 
 
 # ---------------- 品牌色板吸附 ----------------
+def save_ledger(out, rows, name="台账数据_高保真.json"):
+    """写台账前先备份，防止一次误操作把历史记录冲掉"""
+    import time as _t
+    path = os.path.join(out, name)
+    if os.path.exists(path):
+        bak = os.path.join(out, "台账备份")
+        os.makedirs(bak, exist_ok=True)
+        try:
+            n = len(json.load(open(path, encoding="utf-8")))
+            shutil.copy2(path, os.path.join(bak, f"{_t.strftime('%Y%m%d_%H%M%S')}_{n}条_{name}"))
+            # 只留最近 20 份
+            olds = sorted(os.listdir(bak))[:-20]
+            for f in olds:
+                try:
+                    os.remove(os.path.join(bak, f))
+                except Exception:
+                    pass
+        except Exception:
+            pass
+    json.dump(rows, open(path, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+
+
 def _snap(g, p):
     """把自编色号吸附到品牌色板（MARD 等），拿不到就原样返回"""
     pc = CFG.get("palette", {})
