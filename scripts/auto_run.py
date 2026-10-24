@@ -173,21 +173,26 @@ def _snap(g, p):
 
 # ---------------- 出图 ----------------
 def _save_all(d, dn, name, cut, g, p, scene, cell=12, idx=None):
-    """只产出两样：社媒版一张成品图 / 交付版色号图 + 成品图
+    """社媒版：一套四张（发笔记用）；交付版：色号图 + 成品图
 
-    d   = 社媒版目录（平铺，文件名带编号）
+    d   = 社媒版目录
     dn  = 交付版下这一件的目录
-    idx = 编号（决定文件名前缀，避免互相覆盖）
+    idx = 编号
     """
-    os.makedirs(d, exist_ok=True)
-    os.makedirs(dn, exist_ok=True)
     pre = f"{idx:02d}_" if idx is not None else ""
+    sd = os.path.join(d, f"{pre}{name}")          # 社媒版按作品分目录
+    os.makedirs(sd, exist_ok=True)
+    os.makedirs(dn, exist_ok=True)
 
     card = BR.render_card if scene else FC.float_card
-    # 社媒版：带水印成品图
-    card(g, p).save(os.path.join(d, f"{pre}{name}.png"), optimize=True)
 
-    # 交付版：色号图 + 无标成品图
+    # 社媒版四张：原图 → 成品图 → 色号图 → 对比图
+    M.to_card(cut).save(os.path.join(sd, "01_原图.png"), optimize=True)
+    card(g, p).save(os.path.join(sd, "02_成品图.png"), optimize=True)
+    BR.render_chart(g, p, name).save(os.path.join(sd, "03_色号图.png"), optimize=True)
+    BR.render_compare(cut, BR.mosaic(g, p, cell), name).save(os.path.join(sd, "04_对比图.png"), optimize=True)
+
+    # 交付版：色号图（无标）+ 成品图（无标）
     BR.render_chart(g, p, name, mark=False).save(os.path.join(dn, "色号图.png"), optimize=True)
     im = card(g, p, mark=False).convert("RGB")
     im.thumbnail((1400, 1400), Image.LANCZOS)
@@ -509,54 +514,21 @@ def main():
     if rr.returncode != 0 and not a.quiet:
         print(f"  !! cleanup 失败：{(rr.stderr or '')[-200:]}")
 
-    gal = X.gallery(out, rows)
-
     dt = time.time() - t0
-    lines = ["# 运行报告", "",
-             f"- 时间：{time.strftime('%Y-%m-%d %H:%M:%S')}",
-             f"- 素材目录：`{a.src}`", f"- 输出目录：`{out}`",
-             f"- 豆径：{bead_mm} mm", f"- 并行：{jobs}", f"- 耗时：{dt:.0f} 秒",
-             f"- 完成 {len(ok)} 件 / 失败 {len(fail)} 件 / 跳过重复 {len(dupes)} 件", ""]
-    if ok:
-        lines += ["| 编号 | 作品 | 评级 | 高保真 | 精品版 |", "|---|---|---|---|---|"]
-        for r, q, pal, info in ok:
-            lines.append(f"| {r['no']:02d} | {r['name']} | {r['grade']} | {r['cols']}×{r['rows']} / "
-                         f"{r['colors']}色 / {r['beads']}颗 / {r['fidelity']*100:.1f}% / 约{r['cm']}cm | "
-                         + (f"{q['cols']}×{q['rows']} / {q['colors']}色 / {q['beads']}颗" if q else "—")
-                         + " |")
-        lines += ["", "## 文案标题变体（可 A/B 测试）", ""]
-        for r, q, pal, info in ok[:5]:
-            for t in X.title_variants(r["name"], r["cols"], r["rows"], r["colors"], r["beads"]):
-                lines.append(f"- {t}")
-        lines += ["", "## 发布排期建议", ""]
-        sch = X.schedule(len(ok))
-        lines.append("、".join(sch[:12]) + ("…" if len(sch) > 12 else ""))
-        lines += ["", X.competitor_table([r for r, _, _, _ in ok]), ""]
-        lines += ["", "## 素材溯源", "", "| 文件 | MD5 |", "|---|---|"]
-        for r, q, pal, info in ok:
-            try:
-                sn = X.source_note(os.path.join(a.src, r["file"]))
-                lines.append(f'| {sn["file"]} | `{sn["md5"]}` |')
-            except Exception:
-                pass
-        lines += ["", "## 采购清单（按件）", ""]
-        for r, q, pal, info in ok:
-            lines.append(X.purchase_md(r["name"], pal, bead_mm))
-            lines.append("")
-    if dupes:
-        lines += ["## 跳过的重复图", ""] + [f"- `{f}` ≈ 已有「{w}」（差异 {d}）" for f, w, d in dupes]
+
     if fail:
-        lines += ["", f"## 失败 {len(fail)} 件", ""] + [f"- {n}：{e}" for n, e in fail]
-    if pdfs:
-        lines += ["", "## 打印分页 PDF", ""] + [f"- {n}：{p} 页" for n, p in pdfs]
-    report = os.path.join(out, "运行报告.md")
-    open(report, "w", encoding="utf-8").write("\n".join(lines) + "\n")
+        bad = os.path.join(out, "内部数据", "失败记录.txt")
+        os.makedirs(os.path.dirname(bad), exist_ok=True)
+        with open(bad, "w", encoding="utf-8") as f:
+            for n, e in fail:
+                f.write(f"{n}: {e}\n")
+
 
     if not a.quiet:
         print(f"\n完成 {len(ok)} 件，失败 {len(fail)} 件，跳过重复 {len(dupes)} 件，用时 {dt:.0f} 秒")
-        print(f"台账：{os.path.join(out, '作品清单.xlsx')}")
-        print(f"画廊：{gal}")
-        print(f"报告：{report}")
+        print(f"清单：{os.path.join(out, '作品清单.xlsx')}")
+        print(f"社媒版：{os.path.join(out, '社媒版')}")
+        print(f"交付版：{os.path.join(out, '交付版')}")
     return 0 if not fail else 2
 
 

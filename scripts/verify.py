@@ -89,8 +89,14 @@ def main():
                 errs += fail(f'{r["name"]}: 色号图宽 {w} ≠ 应为 {want}')
         if not os.path.exists(os.path.join(d, "成品图.jpg")):
             errs += fail(f'{r["name"]}: 缺交付版成品图')
-        if not os.path.exists(os.path.join(out, "社媒版", f'{r["no"]:02d}_{r["name"]}.png')):
-            errs += fail(f'{r["name"]}: 缺社媒版')
+        sm = os.path.join(out, "社媒版", f'{r["no"]:02d}_{r["name"]}')
+        if not os.path.isdir(sm):
+            errs += fail(f'{r["name"]}: 缺社媒版目录')
+        else:
+            need = ("01_原图.png", "02_成品图.png", "03_色号图.png", "04_对比图.png")
+            miss = [f for f in need if not os.path.exists(os.path.join(sm, f))]
+            if miss:
+                errs += fail(f'{r["name"]}: 社媒版缺 {len(miss)} 张（{"、".join(miss)}）')
 
     # 5) 清单
     xlsx = os.path.join(out, "作品清单.xlsx")
