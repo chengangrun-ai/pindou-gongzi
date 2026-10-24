@@ -30,6 +30,7 @@ import floatcard as FC
 import lowcolor as L
 import extras as X
 import palettes as PAL
+import categorize as CAT
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 EXTS = (".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tif", ".tiff", ".ico", ".jfif")
@@ -51,10 +52,27 @@ def flat_ratio(im, w=400):
     return float((mag < 12).mean())
 
 
+def border_variance(im, w=0.06):
+    """四条边带的颜色标准差：平色背景接近 0，满幅照片很大"""
+    a = np.asarray(im.convert("RGB"), np.int16)
+    h, wd = a.shape[:2]
+    b = max(2, int(min(h, wd) * w))
+    strips = [a[:b], a[-b:], a[:, :b], a[:, -b:]]
+    return float(np.mean([s.reshape(-1, 3).std(0).mean() for s in strips]))
+
+
 def is_scene(im):
-    # 线稿（纹身手稿/素描）虽然平整度低，但主体明确，不能当场景
+    """判定是否整幅做豆板（不抠图）
+
+    顺序很重要：
+    1. 线稿 → 不是场景（走线稿模式）
+    2. 四条边都不干净（色差 > 12）→ 场景，满幅照片没有可分离的主体
+    3. 其余看平整度
+    """
     if L.is_lineart(im):
         return False
+    if border_variance(im) > 12:
+        return True
     return flat_ratio(im) < SCENE_FLAT
 
 
@@ -205,11 +223,11 @@ def do_premium(cut, name, idx, scene, out, lineart=False):
 
 def process_one(task):
     """worker：处理单张，返回 (row, prem, pal, info)。异常在内部捕获。"""
-    path, name, idx, out, bead_mm, no_premium = task
+    path, name, idx, out, bead_mm, no_premium, force_scene = task
     try:
         im, notes = X.preprocess(path)
-        scene = is_scene(im)
-        lineart = L.is_lineart(im)
+        scene = True if force_scene else is_scene(im)
+        lineart = L.is_lineart(im) and not force_scene
         cut, how = (im.convert("RGBA"), "场景") if scene else auto_cut(im)
         if lineart:
             how = "线稿"
@@ -218,6 +236,7 @@ def process_one(task):
         r["cut_score"] = qscore
         r["cut_notes"] = qnotes
         r["cut_cov"] = qcov
+        r["cat"] = CAT.classify(name, scene=scene, lineart=lineart)
         r["file"] = os.path.basename(path)
         r["bead_mm"] = bead_mm
         r["cm"] = round(r["cols"] * bead_mm / 10, 1)
@@ -245,6 +264,8 @@ def main():
     ap.add_argument("--bead-mm", type=float, default=None)
     ap.add_argument("--jobs", type=int, default=0, help="并行数，默认按 CPU 自动")
     ap.add_argument("--force", action="store_true", help="重复图也照做")
+    ap.add_argument("--scene-all", action="store_true", help="全部按场景处理（整幅做豆板，不抠图）")
+    ap.add_argument("--no-cat", action="store_true", help="不自动分类（保持平铺）")
     ap.add_argument("--quiet", action="store_true")
     ap.add_argument("--version", action="version", version="pindou-pattern 2.0")
     ap.add_argument("--json", action="store_true", help="输出机器可读 JSON")
@@ -341,7 +362,7 @@ def main():
     for p in todo:
         name = a.name if (a.name and len(todo) == 1) else X.safe_name(os.path.splitext(os.path.basename(p))[0])
         idx = max([r["no"] for r in rows], default=0) + len(tasks) + 1
-        tasks.append((p, name, idx, out, bead_mm, a.no_premium))
+        tasks.append((p, name, idx, out, bead_mm, a.no_premium, a.scene_all))
 
     if a.dry:
         for p, name, idx, *_ in tasks:
