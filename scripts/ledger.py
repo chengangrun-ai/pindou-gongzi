@@ -66,7 +66,8 @@ def _find_img(row, out):
     base = row.get("path") or os.path.join(out, f'{row["no"]:02d}_{row["name"]}')
     if not os.path.isabs(base):
         base = os.path.join(out, base)
-    for f in ("01_原图.png", "02_成品图.png", "04_对比图.png"):
+    for f in ("01_原图.jpg", "01_原图.png", "02_成品图.jpg", "02_成品图.png",
+              "04_对比图.jpg", "04_对比图.png"):
         p = os.path.join(base, f)
         if os.path.exists(p):
             return p
