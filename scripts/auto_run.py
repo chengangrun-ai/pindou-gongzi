@@ -31,6 +31,7 @@ import lowcolor as L
 import extras as X
 import palettes as PAL
 import categorize as CAT
+import ledger as LEDGER
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 EXTS = (".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tif", ".tiff", ".ico", ".jfif")
@@ -420,12 +421,20 @@ def main():
             except Exception as e:
                 log.error("PDF 失败 %s: %s", r["name"], e)
 
+    # 台账（带缩略图，按分类分 sheet）
+    try:
+        LEDGER.build(out)
+    except Exception as e:
+        log.error("台账失败: %s", e)
+        if not a.quiet:
+            print(f"  !! 台账生成失败：{e}")
+
+    # 清理重复的原图
     import subprocess
-    for script in ("make_excel2.py", "cleanup.py"):
-        rr = subprocess.run([sys.executable, os.path.join(HERE, script)],
-                            capture_output=True, text=True, encoding="utf-8", errors="replace")
-        if rr.returncode != 0 and not a.quiet:
-            print(f"  !! {script} 失败：{(rr.stderr or '')[-200:]}")
+    rr = subprocess.run([sys.executable, os.path.join(HERE, "cleanup.py")],
+                        capture_output=True, text=True, encoding="utf-8", errors="replace")
+    if rr.returncode != 0 and not a.quiet:
+        print(f"  !! cleanup 失败：{(rr.stderr or '')[-200:]}")
 
     gal = X.gallery(out, rows)
 
