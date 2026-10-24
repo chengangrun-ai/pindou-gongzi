@@ -172,22 +172,26 @@ def _snap(g, p):
 
 
 # ---------------- 出图 ----------------
-def _save_all(d, dn, name, cut, g, p, scene, cell=12):
-    os.makedirs(d, exist_ok=True); os.makedirs(dn, exist_ok=True)
-    M.to_card(cut).save(os.path.join(d, "01_原图.png"))
-    plain = BR.paper(*M.CARD)
-    s2 = min((M.CARD[0]*0.66)/cut.width, (M.CARD[1]*0.72)/cut.height)
-    t = cut.resize((int(cut.width*s2), int(cut.height*s2)), Image.LANCZOS)
-    plain.paste(t, ((M.CARD[0]-t.width)//2, int(M.CARD[1]*0.45)-t.height//2),
-                t if t.mode == "RGBA" else None)
-    plain.save(os.path.join(dn, "01_原图_无标.png"))
+def _save_all(d, dn, name, cut, g, p, scene, cell=12, idx=None):
+    """只产出两样：社媒版一张成品图 / 交付版色号图 + 成品图
+
+    d   = 社媒版目录（平铺，文件名带编号）
+    dn  = 交付版下这一件的目录
+    idx = 编号（决定文件名前缀，避免互相覆盖）
+    """
+    os.makedirs(d, exist_ok=True)
+    os.makedirs(dn, exist_ok=True)
+    pre = f"{idx:02d}_" if idx is not None else ""
+
     card = BR.render_card if scene else FC.float_card
-    card(g, p).save(os.path.join(d, "02_成品图.png"))
-    card(g, p, mark=False).save(os.path.join(dn, "02_成品图_无标.png"))
-    BR.render_chart(g, p, name).save(os.path.join(d, "03_色彩图.png"))
-    BR.render_chart(g, p, name, mark=False).save(os.path.join(dn, "03_色彩图_无标.png"))
-    BR.render_compare(cut, BR.mosaic(g, p, cell), name).save(os.path.join(d, "04_对比图.png"))
-    BR.render_compare(cut, BR.mosaic(g, p, cell), name, mark=False).save(os.path.join(dn, "04_对比图_无标.png"))
+    # 社媒版：带水印成品图
+    card(g, p).save(os.path.join(d, f"{pre}{name}.png"), optimize=True)
+
+    # 交付版：色号图 + 无标成品图
+    BR.render_chart(g, p, name, mark=False).save(os.path.join(dn, "色号图.png"), optimize=True)
+    im = card(g, p, mark=False).convert("RGB")
+    im.thumbnail((1400, 1400), Image.LANCZOS)
+    im.save(os.path.join(dn, "成品图.jpg"), quality=92, optimize=True)
 
 
 def do_high(cut, name, idx, scene, out, lineart=False):
@@ -202,7 +206,7 @@ def do_high(cut, name, idx, scene, out, lineart=False):
         g, p, _info = _simplify(g, p, C.on_white(small))
         d = os.path.join(out, f"{idx:02d}_{name}")
         dn = os.path.join(out, "无LOGO版", f"{idx:02d}_{name}")
-        _save_all(d, dn, name, cut, g, p, scene, cell=12)
+        _save_all(d, dn, name, cut, g, p, scene, cell=12, idx=idx)
         NR, NC = g.shape
         return dict(no=idx, name=name, cols=int(NC), rows=int(NR),
                     beads=int((g >= 0).sum()), colors=len(p),
@@ -232,7 +236,7 @@ def do_high(cut, name, idx, scene, out, lineart=False):
               f"（还原 {_info['fidelity_before']:.4f} → {_info['fidelity']:.4f}）")
     d = os.path.join(out, "社媒版")
     dn = os.path.join(out, "交付版", f"{idx:02d}_{name}")
-    _save_all(d, dn, name, cut, g, p, scene, cell=12)
+    _save_all(d, dn, name, cut, g, p, scene, cell=12, idx=idx)
     NR, NC = g.shape
     return dict(no=idx, name=name, cols=int(NC), rows=int(NR),
                 beads=int((g >= 0).sum()), colors=len(p),
