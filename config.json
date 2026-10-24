@@ -157,5 +157,10 @@
   "delivery": {
     "url": "",
     "code": ""
+  },
+  "output": {
+    "single": true,
+    "fidelity_floor": 0.965,
+    "min_colors": 4
   }
 }

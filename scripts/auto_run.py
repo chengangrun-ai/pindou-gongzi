@@ -32,6 +32,7 @@ import extras as X
 import palettes as PAL
 import categorize as CAT
 import ledger as LEDGER
+import simplify as SIMP
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 EXTS = (".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tif", ".tiff", ".ico", ".jfif")
@@ -126,6 +127,22 @@ def save_ledger(out, rows, name="台账数据_高保真.json"):
     json.dump(rows, open(path, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 
 
+def _simplify(g, p, ref):
+    """合并近似色：在还原度还够的前提下把色号压到最少"""
+    oc = CFG.get("output") or {}
+    if not oc.get("single", False):
+        return g, p, None
+    try:
+        g2, p2, info = SIMP.reduce_palette(
+            g, p, ref,
+            floor=float(oc.get("fidelity_floor", 0.965)),
+            min_colors=int(oc.get("min_colors", 4)))
+        return g2, p2, info
+    except Exception as e:
+        print(f"  ! 合并色号失败（{e}），保留原调色板")
+        return g, p, None
+
+
 def _snap(g, p):
     """把自编色号吸附到品牌色板（MARD 等），拿不到就原样返回"""
     pc = CFG.get("palette", {})
@@ -164,6 +181,7 @@ def do_high(cut, name, idx, scene, out, lineart=False):
         g, p = L.beadify_line(C.on_white(small), c, levels=4)
         g = np.where(FC.grid_alpha(small, c) > 0.35, g, -1) if small.mode == "RGBA" else g
         g, p = _snap(g, p)
+        g, p, _info = _simplify(g, p, C.on_white(small))
         d = os.path.join(out, f"{idx:02d}_{name}")
         dn = os.path.join(out, "无LOGO版", f"{idx:02d}_{name}")
         _save_all(d, dn, name, cut, g, p, scene, cell=12)
@@ -186,6 +204,10 @@ def do_high(cut, name, idx, scene, out, lineart=False):
             break
     g, p = best["grid"], best["pal"]
     g, p = _snap(g, p)
+    g, p, _info = _simplify(g, p, C.on_white(small))
+    if _info:
+        print(f"      色号 {_info['before']} → {_info['after']}"
+              f"（还原 {_info['fidelity_before']:.4f} → {_info['fidelity']:.4f}）")
     d = os.path.join(out, f"{idx:02d}_{name}")
     dn = os.path.join(out, "无LOGO版", f"{idx:02d}_{name}")
     _save_all(d, dn, name, cut, g, p, scene, cell=12)
@@ -264,7 +286,8 @@ def process_one(task):
         r["bead_mm"] = bead_mm
         r["cm"] = round(r["cols"] * bead_mm / 10, 1)
         r["notes"] = notes
-        q = None if no_premium else do_premium(cut, name, idx, scene, out, lineart)
+        single = (CFG.get("output") or {}).get("single", False)
+        q = None if (no_premium or single) else do_premium(cut, name, idx, scene, out, lineart)
         if q:
             q = q[0]
         r["grade"] = X.grade(r["fidelity"], q["speckle"] if q else 0.0, r["colors"])
