@@ -4,6 +4,26 @@
 
 不依赖任何特定平台。Python 3.9+，命令行。
 
+
+## 三分钟上手
+
+```bash
+# 1. 装（一次）
+git clone https://github.com/chengangrun-ai/pindou-gongzi.git
+pip install -r pindou-gongzi/requirements.txt
+
+# 2. 改成你的品牌（一次，不改会印别人的名字）
+cd pindou-gongzi
+echo '{"brand":{"name":"你的品牌名","watermark":"@你的品牌名"}}' > config.local.json
+
+# 3. 把图片丢进素材目录，然后跑
+python scripts/auto_run.py --jobs 4
+```
+
+跑完打开 `作品清单.xlsx`，每行带缩略图。
+
+**剩下的往下看。**
+
 ## 📺 看看效果
 
 [![拼豆公子 — 一张图变成四张成品图](screenshots/halloween-kitty-compare.png)](screenshots/halloween-kitty-compare.png)
