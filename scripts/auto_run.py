@@ -136,7 +136,8 @@ def _simplify(g, p, ref):
         g2, p2, info = SIMP.reduce_palette(
             g, p, ref,
             floor=float(oc.get("fidelity_floor", 0.965)),
-            min_colors=int(oc.get("min_colors", 4)))
+            min_colors=int(oc.get("min_colors", 4)),
+            max_delta=float(oc.get("max_delta", 10.0)))
         return g2, p2, info
     except Exception as e:
         print(f"  ! 合并色号失败（{e}），保留原调色板")

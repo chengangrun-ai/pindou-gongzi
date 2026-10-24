@@ -42,7 +42,8 @@ def _merge(g, p, i, j):
     return g2, p2
 
 
-def reduce_palette(g, p, ref, floor=0.965, drop=0.012, min_colors=4, verbose=False):
+def reduce_palette(g, p, ref, floor=0.965, drop=0.012, min_colors=4,
+                   max_delta=10.0, verbose=False):
     """逐步合并最接近的颜色，直到还原度跌破 floor
 
     g:   (NR,NC) int16，-1 为透明
@@ -50,6 +51,7 @@ def reduce_palette(g, p, ref, floor=0.965, drop=0.012, min_colors=4, verbose=Fal
     ref: 源图（裁过的那张），用来算还原度
     floor: 绝对下限（兜底）
     drop:  允许比当前低多少，默认 0.012（1.2%）
+    max_delta: 两个颜色差多远就不许合并（Lab 距离），默认 10
     返回 (grid, pal, info)
     """
     if not p or len(p) <= min_colors:
@@ -74,6 +76,8 @@ def reduce_palette(g, p, ref, floor=0.965, drop=0.012, min_colors=4, verbose=Fal
                 if cnt[i] + cnt[j] == 0:
                     continue
                 d = float(np.linalg.norm(labs[i] - labs[j]))
+                if d > max_delta:          # 差太远的颜色不许合并，否则画面会糊
+                    continue
                 cost = d * (cnt[i] + cnt[j])
                 if best is None or cost < best[0]:
                     best = (cost, i, j)

@@ -161,6 +161,7 @@
   "output": {
     "single": true,
     "fidelity_floor": 0.965,
-    "min_colors": 4
+    "min_colors": 4,
+    "max_delta": 16.0
   }
 }
