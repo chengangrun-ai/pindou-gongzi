@@ -113,7 +113,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("path", nargs="?", help="作品目录或分类目录")
     ap.add_argument("--all", action="store_true", help="处理 分类/ 下全部")
-    ap.add_argument("--zip", action="store_true", help="同时打包 zip")
+    ap.add_argument("--zip", action="store_true", help="每件单独打包 zip")
+    ap.add_argument("--bundle", action="store_true",
+                    help="按分类打成一个总包（推荐，网盘只传一个文件）")
     ap.add_argument("--out", default=CFG["paths"]["out"])
     a = ap.parse_args()
 
@@ -133,9 +135,30 @@ def main():
 
     print(f"共 {len(targets)} 件")
     for t in targets:
-        made = pack(t, brand, a.zip)
+        made = pack(t, brand, a.zip and not a.bundle)
         print(f"  ✓ {os.path.basename(t)}: {', '.join(made)}")
-    print("\n完成。交付包里是 PDF + 成品图 + 说明，直接发客户。")
+
+    if a.bundle:
+        # 按分类打成一个总包：网盘只传一个文件
+        from collections import defaultdict
+        groups = defaultdict(list)
+        for t in targets:
+            cat = os.path.basename(os.path.dirname(t)) or "全部"
+            groups[cat].append(t)
+        for cat, items in groups.items():
+            z = os.path.join(a.out, f"交付包_{cat}.zip")
+            with zipfile.ZipFile(z, "w", zipfile.ZIP_DEFLATED) as zf:
+                for t in items:
+                    pk = os.path.join(t, "交付包")
+                    if not os.path.isdir(pk):
+                        continue
+                    for f in os.listdir(pk):
+                        zf.write(os.path.join(pk, f),
+                                 os.path.join(os.path.basename(t), f))
+            mb = os.path.getsize(z) / 1048576
+            print(f"  📦 交付包_{cat}.zip  {mb:.0f} MB  （{len(items)} 件）")
+
+    print("\n完成。微信发「文件」也行，网盘传 zip 也行。")
     return 0
 
 
