@@ -142,8 +142,9 @@ def build(out, thumb=80, with_text=False, order=None):
     from PIL import Image as _I
 
     wb = openpyxl.Workbook(); ws = wb.active; ws.title = "作品清单"
-    HDR = ["图", "编号", "作品名", "格数", "色数", "豆数", "尺寸", "已发社媒", "已交付", "备注"]
-    WID = [14, 6, 18, 12, 7, 10, 14, 10, 10, 20]
+    HDR = ["图", "编号", "作品名", "格数", "色数", "豆数", "尺寸",
+           "标题", "正文（复制发笔记）", "标签", "已发社媒", "已交付", "备注"]
+    WID = [13, 5, 14, 11, 6, 9, 11, 24, 46, 30, 9, 9, 16]
     ws.append(HDR)
     for i, w in enumerate(WID, 1):
         ws.column_dimensions[get_column_letter(i)].width = w
@@ -159,11 +160,14 @@ def build(out, thumb=80, with_text=False, order=None):
                    f'{r["cols"]}×{r["rows"]}' if r.get("cols") else "—",
                    r.get("colors") or "—", r.get("beads") or "—",
                    f'约{round((r["cols"] or 0) * 0.5)}cm' if r.get("cols") else "—",
-                   "☐", "☐", ""])
+                   f'拼豆图纸 | {r["name"]}', copy_text(r),
+                   TAGS.get(r.get("cat", ""), TAGS["风景"]), "☐", "☐", ""])
         rr = ws.max_row
-        ws.row_dimensions[rr].height = thumb * 0.8
-        for col in (2, 5, 8, 9):
+        ws.row_dimensions[rr].height = 96
+        for col in (2, 5, 11, 12):
             ws.cell(rr, col).alignment = Alignment(horizontal="center", vertical="center")
+        for col in (8, 9, 10):
+            ws.cell(rr, col).alignment = Alignment(wrap_text=True, vertical="top")
         src = _find_img(r, out)
         tp = _thumb(src, thumb, tmpdir, str(r["no"]))
         if tp:

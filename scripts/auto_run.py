@@ -128,6 +128,20 @@ def save_ledger(out, rows, name="台账数据_高保真.json"):
     json.dump(rows, open(path, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 
 
+def _fit_exact(im, cols, rows):
+    """把图裁成精确的 cols:rows 比例，保证出来的格数一个不差"""
+    from PIL import Image as _I
+    tw, th = cols, rows
+    w, h = im.size
+    if w * th > h * tw:                 # 太宽，裁两边
+        nw = int(h * tw / th)
+        x = (w - nw) // 2
+        return im.crop((x, 0, x + nw, h))
+    nh = int(w * th / tw)               # 太高，裁上下
+    y = (h - nh) // 2
+    return im.crop((0, y, w, y + nh))
+
+
 def _simplify(g, p, ref):
     """合并近似色：在还原度还够的前提下把色号压到最少"""
     oc = CFG.get("output") or {}
@@ -179,7 +193,9 @@ def _save_all(d, dn, name, cut, g, p, scene, cell=12):
 def do_high(cut, name, idx, scene, out, lineart=False):
     if lineart:
         c = HI_LADDER[-1] if max(cut.size) >= 900 else HI_LADDER[-2]
-        small = cut.resize((c*3, max(3, int(cut.height*c*3/cut.width))), Image.LANCZOS)
+        _rf = int((CFG.get("grid") or {}).get("rows") or 0)
+        _b = _fit_exact(cut, c, _rf) if _rf else cut
+        small = _b.resize((c*3, max(3, int(_b.height*c*3/_b.width))), Image.LANCZOS)
         g, p = L.beadify_line(C.on_white(small), c, levels=4)
         g = np.where(FC.grid_alpha(small, c) > 0.35, g, -1) if small.mode == "RGBA" else g
         g, p = _snap(g, p)
@@ -192,8 +208,12 @@ def do_high(cut, name, idx, scene, out, lineart=False):
                     beads=int((g >= 0).sum()), colors=len(p),
                     fidelity=0.99, path=d, thumb=os.path.join(d, "01_原图.png")), p
     best = None
-    for c in [x for x in HI_LADDER if x <= MAX_COLS] or [MAX_COLS]:
-        small = cut.resize((c*3, max(3, int(cut.height*c*3/cut.width))), Image.LANCZOS)
+    _fix = int((CFG.get("grid") or {}).get("cols") or 0)
+    _ladder = [_fix] if _fix else [x for x in HI_LADDER if x <= MAX_COLS] or [MAX_COLS]
+    for c in _ladder:
+        _rf = int((CFG.get("grid") or {}).get("rows") or 0)
+        _b = _fit_exact(cut, c, _rf) if _rf else cut
+        small = _b.resize((c*3, max(3, int(_b.height*c*3/_b.width))), Image.LANCZOS)
         white = C.on_white(small)
         g, p = FG.beadify_fast(white, c, K=int(min(64, 20 + c/5)))
         if small.mode == "RGBA":
@@ -223,7 +243,9 @@ def do_high(cut, name, idx, scene, out, lineart=False):
 def do_premium(cut, name, idx, scene, out, lineart=False):
     if lineart:
         c = 160 if max(cut.size) >= 900 else 128
-        small = cut.resize((c*3, max(3, int(cut.height*c*3/cut.width))), Image.LANCZOS)
+        _rf = int((CFG.get("grid") or {}).get("rows") or 0)
+        _b = _fit_exact(cut, c, _rf) if _rf else cut
+        small = _b.resize((c*3, max(3, int(_b.height*c*3/_b.width))), Image.LANCZOS)
         g, p = L.beadify_line(C.on_white(small), c, levels=3)
         g = np.where(FC.grid_alpha(small, c) > 0.35, g, -1) if small.mode == "RGBA" else g
         g, p = _snap(g, p)

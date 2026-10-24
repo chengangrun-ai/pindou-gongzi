@@ -165,6 +165,8 @@
     "max_delta": 16.0
   },
   "grid": {
+    "cols": 96,
+    "rows": 128,
     "max_cols": 160
   }
 }
