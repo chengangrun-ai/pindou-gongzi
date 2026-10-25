@@ -62,15 +62,24 @@ def _thumb(src, size, tmpdir, key):
 
 
 def _find_img(row, out):
-    """优先用原图，其次成品图"""
-    base = row.get("path") or os.path.join(out, f'{row["no"]:02d}_{row["name"]}')
-    if not os.path.isabs(base):
-        base = os.path.join(out, base)
-    for f in ("01_原图.jpg", "01_原图.png", "02_成品图.jpg", "02_成品图.png",
-              "04_对比图.jpg", "04_对比图.png"):
-        p = os.path.join(base, f)
-        if os.path.exists(p):
-            return p
+    """在社媒版/<分类>/<编号>_<名>/ 里找原图，找不到再退回交付版成品图"""
+    no, name = row["no"], row["name"]
+    cat = row.get("cat") or ""
+    cands = []
+    if cat:
+        cands.append(os.path.join(out, "社媒版", cat, f"{no:02d}_{name}"))
+    cands.append(os.path.join(out, "社媒版", f"{no:02d}_{name}"))
+    for d in cands:
+        for f in ("01_原图.png", "02_成品图.png"):
+            p = os.path.join(d, f)
+            if os.path.exists(p):
+                return p
+    # 兜底：任何分类下的这个作品
+    import glob as _g
+    for p in _g.glob(os.path.join(out, "社媒版", "*", f"{no:02d}_{name}", "*.png")):
+        return p
+    for p in _g.glob(os.path.join(out, "交付版", "*", f"{no:02d}_{name}", "*.jpg")):
+        return p
     return None
 
 
