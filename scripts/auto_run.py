@@ -206,7 +206,7 @@ def do_high(cut, name, idx, scene, out, lineart=False):
         _rf = int((CFG.get("grid") or {}).get("rows") or 0)
         _b = _fit_exact(cut, c, _rf) if _rf else cut
         # 有固定行数就按精确尺寸缩，避免四舍五入差 1 格
-        _sz = (c*3, _rf*3) if _rf else (c*3, max(3, int(_b.height*c*3/_b.width)))
+        _sz = (c*3, _rf*3) if _rf else (c*3, max(3, round(_b.height*c*3/_b.width)))
         small = _b.resize(_sz, Image.LANCZOS)
         g, p = L.beadify_line(C.on_white(small), c, levels=4)
         g = np.where(FC.grid_alpha(small, c) > 0.35, g, -1) if small.mode == "RGBA" else g
@@ -227,7 +227,7 @@ def do_high(cut, name, idx, scene, out, lineart=False):
         _rf = int((CFG.get("grid") or {}).get("rows") or 0)
         _b = _fit_exact(cut, c, _rf) if _rf else cut
         # 有固定行数就按精确尺寸缩，避免四舍五入差 1 格
-        _sz = (c*3, _rf*3) if _rf else (c*3, max(3, int(_b.height*c*3/_b.width)))
+        _sz = (c*3, _rf*3) if _rf else (c*3, max(3, round(_b.height*c*3/_b.width)))
         small = _b.resize(_sz, Image.LANCZOS)
         white = C.on_white(small)
         g, p = FG.beadify_fast(white, c, K=int(min(64, 20 + c/5)))
@@ -262,7 +262,7 @@ def do_premium(cut, name, idx, scene, out, lineart=False):
         _rf = int((CFG.get("grid") or {}).get("rows") or 0)
         _b = _fit_exact(cut, c, _rf) if _rf else cut
         # 有固定行数就按精确尺寸缩，避免四舍五入差 1 格
-        _sz = (c*3, _rf*3) if _rf else (c*3, max(3, int(_b.height*c*3/_b.width)))
+        _sz = (c*3, _rf*3) if _rf else (c*3, max(3, round(_b.height*c*3/_b.width)))
         small = _b.resize(_sz, Image.LANCZOS)
         g, p = L.beadify_line(C.on_white(small), c, levels=3)
         g = np.where(FC.grid_alpha(small, c) > 0.35, g, -1) if small.mode == "RGBA" else g
@@ -351,6 +351,8 @@ def main():
     ap.add_argument("--pdf", action="store_true", help="顺带出 A4 打印分页 PDF")
     ap.add_argument("--bead-mm", type=float, default=None)
     ap.add_argument("--jobs", type=int, default=0, help="并行数，默认按 CPU 自动")
+    ap.add_argument("--cols", type=int, default=0, help="短边格数（覆盖配置，0=用配置）")
+    ap.add_argument("--rows", type=int, default=0, help="长边格数（0=按原图比例自动算）")
     ap.add_argument("--force", action="store_true", help="重复图也照做")
     ap.add_argument("--scene-all", action="store_true", help="全部按场景处理（整幅做豆板，不抠图）")
     ap.add_argument("--no-cat", action="store_true", help="不自动分类（保持平铺）")
@@ -359,6 +361,17 @@ def main():
     ap.add_argument("--json", action="store_true", help="输出机器可读 JSON")
     ap.add_argument("--check", action="store_true", help="全量体检已有产物，不出图")
     a = ap.parse_args()
+
+    # 临时覆盖格数：--cols 104 表示短边 104，长边按原图比例
+    if a.cols or a.rows:
+        CFG.setdefault("grid", {})
+        if a.cols:
+            CFG["grid"]["cols"] = int(a.cols)
+        if a.rows:
+            CFG["grid"]["rows"] = int(a.rows)
+        elif a.cols:
+            CFG["grid"]["rows"] = 0        # 0 = 按比例
+
 
     # 磁盘空间检查（小于 500MB 直接劝退）
     try:
