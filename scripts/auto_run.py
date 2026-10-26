@@ -205,7 +205,9 @@ def do_high(cut, name, idx, scene, out, lineart=False):
         c = HI_LADDER[-1] if max(cut.size) >= 900 else HI_LADDER[-2]
         _rf = int((CFG.get("grid") or {}).get("rows") or 0)
         _b = _fit_exact(cut, c, _rf) if _rf else cut
-        small = _b.resize((c*3, max(3, int(_b.height*c*3/_b.width))), Image.LANCZOS)
+        # 有固定行数就按精确尺寸缩，避免四舍五入差 1 格
+        _sz = (c*3, _rf*3) if _rf else (c*3, max(3, int(_b.height*c*3/_b.width)))
+        small = _b.resize(_sz, Image.LANCZOS)
         g, p = L.beadify_line(C.on_white(small), c, levels=4)
         g = np.where(FC.grid_alpha(small, c) > 0.35, g, -1) if small.mode == "RGBA" else g
         g, p = _snap(g, p)
@@ -224,7 +226,9 @@ def do_high(cut, name, idx, scene, out, lineart=False):
     for c in _ladder:
         _rf = int((CFG.get("grid") or {}).get("rows") or 0)
         _b = _fit_exact(cut, c, _rf) if _rf else cut
-        small = _b.resize((c*3, max(3, int(_b.height*c*3/_b.width))), Image.LANCZOS)
+        # 有固定行数就按精确尺寸缩，避免四舍五入差 1 格
+        _sz = (c*3, _rf*3) if _rf else (c*3, max(3, int(_b.height*c*3/_b.width)))
+        small = _b.resize(_sz, Image.LANCZOS)
         white = C.on_white(small)
         g, p = FG.beadify_fast(white, c, K=int(min(64, 20 + c/5)))
         if small.mode == "RGBA":
@@ -257,7 +261,9 @@ def do_premium(cut, name, idx, scene, out, lineart=False):
         c = 160 if max(cut.size) >= 900 else 128
         _rf = int((CFG.get("grid") or {}).get("rows") or 0)
         _b = _fit_exact(cut, c, _rf) if _rf else cut
-        small = _b.resize((c*3, max(3, int(_b.height*c*3/_b.width))), Image.LANCZOS)
+        # 有固定行数就按精确尺寸缩，避免四舍五入差 1 格
+        _sz = (c*3, _rf*3) if _rf else (c*3, max(3, int(_b.height*c*3/_b.width)))
+        small = _b.resize(_sz, Image.LANCZOS)
         g, p = L.beadify_line(C.on_white(small), c, levels=3)
         g = np.where(FC.grid_alpha(small, c) > 0.35, g, -1) if small.mode == "RGBA" else g
         g, p = _snap(g, p)
