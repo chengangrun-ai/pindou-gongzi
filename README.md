@@ -376,7 +376,11 @@ grabCut 前景分割 + 覆盖率自检，抠不干净自动换方法。适合真
 
 ## Gallery
 
-[![原图 → 拼豆](screenshots/halloween-kitty-compare.png)](screenshots/halloween-kitty-compare.png) [![飞龙 · 4 色](screenshots/dragon-product.png)](screenshots/dragon-product.png) [![弓箭手 · 带色号图纸](screenshots/archer-chart.png)](screenshots/archer-chart.png)
+<p>
+  <img src="./screenshots/halloween-kitty-compare.png" width="32%" alt="万圣Kitty：原图与拼豆成品对比" />
+  <img src="./screenshots/dragon-product.png" width="32%" alt="纹身手稿「飞龙」成品图，4 色" />
+  <img src="./screenshots/archer-chart.png" width="32%" alt="弓箭手：带色号图纸，每格可读" />
+</p>
 
 > 左：万圣Kitty 原图与拼豆对比（7 色 4613 颗）｜中：纹身手稿「飞龙」4 色 16198 颗｜右：带色号的图纸，每格可读
 
