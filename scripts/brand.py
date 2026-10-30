@@ -413,9 +413,11 @@ def render_chart(idx, pal, name, cell=30, max_w=6400, mark=True):
         r, g, b = RGB[i]
         dr.rounded_rectangle([cx, cy, cx + 62, cy + 44], 6, fill=(int(r), int(g), int(b)),
                              outline=(196, 195, 192), width=1)
-        dr.text((cx + 31, cy + 58), p[0], font=fnt(16, True), fill=(58, 56, 60), anchor="ma")
-        dr.text((cx + 31, cy + 78), f"{p[3]} · {p[3]/_tot*100:.0f}%",
-                font=fnt(12), fill=(150, 147, 150), anchor="ma")
+        # 色号 × 颗数（客户按这个买豆）
+        dr.text((cx + 31, cy + 62), f"{p[0]} × {p[3]}颗",
+                font=fnt(15, True), fill=(58, 56, 60), anchor="ma")
+        dr.text((cx + 31, cy + 80), f"{p[3]/_tot*100:.0f}%",
+                font=fnt(11), fill=(168, 165, 168), anchor="ma")
 
     if mark:
         watermark(canvas, WM, (X0, Y0, X0 + NC * cell, Y0 + NR * cell),
