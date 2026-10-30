@@ -303,6 +303,9 @@ def _bead(rgb, size, ss=4):
 
 
 # ---------------------------------------------------------------- 图纸卡
+CHART_PAGE = "1/1"          # 页码，批量导出时可改
+
+
 def render_chart(idx, pal, name, cell=30, max_w=6400, mark=True):
     NR, NC = idx.shape
     cell = max(20, min(26, 5200 // NC))
@@ -319,10 +322,29 @@ def render_chart(idx, pal, name, cell=30, max_w=6400, mark=True):
     total = int((idx >= 0).sum())
     _mm = CFG["bead"]["diameter_mm"]
     dr.text((M_L - 30, 34), f"{name}", font=fnt(30, True), fill=(70, 68, 72))
-    # 摘要块：豆数 / 色数 / 格数 / 成品尺寸
-    _sum = (f"{total:,} 颗   ·   {len(pal)} 色   ·   {NC}×{NR} 格   ·   "
+    # 摘要块：格数 / 色数 / 豆数 / 豆径 / 色卡 / 成品尺寸（出品必备信息）
+    _pname = (CFG.get("palette") or {}).get("name", "mard").upper()
+    _ncol = len(pal)
+    # 色卡总色数（MARD291），不是本图用了几色
+    _ptot = ""
+    try:
+        import json as _j, os as _o
+        _f = _o.path.join(_o.path.dirname(_o.path.abspath(__file__)), "..", "palettes",
+                          f'{_pname.lower()}.json')
+        _d = _j.load(open(_f, encoding="utf-8"))
+        _ptot = str(len(_d.get("colors") or _d))
+    except Exception:
+        _ptot = ""
+    _sum = (f"{NC}×{NR} 格   ·   {_ncol} 色   ·   {total:,} 颗   ·   "
+            f"豆径 {_mm}mm   ·   {_pname}{_ptot}   ·   "
             f"约 {round(NC*_mm/10,1)}×{round(NR*_mm/10,1)} cm")
     dr.text((M_L - 30, 78), _sum, font=fnt(19), fill=(150, 147, 150))
+
+    # 右上角：制作日期 + 页码（出品必备）
+    import datetime as _dt
+    _date = _dt.date.today().strftime("%Y.%m.%d")
+    _pg = CHART_PAGE
+    dr.text((W - M_R + 30, 36), f"{_date}   {_pg}", font=fnt(17), fill=(168, 165, 168), anchor="ra")
 
     X0, Y0 = M_L, M_T
     RGB = [(np.array(hex2rgb(p[1])) * 255).astype(int) for p in pal]
