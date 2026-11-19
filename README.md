@@ -1,11 +1,20 @@
 # 拼豆公子 · Pindou Gongzi
 
+<p align="left">
+  <a href="https://chengangrun-ai.github.io/pindou-gongzi/"><img src="https://img.shields.io/badge/LIVE_DEMO-Open_in_browser-788C5D?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Live demo"></a>
+  <a href="https://chengangrun-ai.github.io/pindou-gongzi/app.html"><img src="https://img.shields.io/badge/CHART_SPEC-3792x36px-2F3634?style=for-the-badge" alt="Chart spec"></a>
+  <a href="https://github.com/chengangrun-ai/pindou-gongzi"><img src="https://img.shields.io/badge/PALETTE-MARD_291-555555?style=for-the-badge&logo=github" alt="Palette"></a>
+</p>
+
 把任何图片变成能照着拼、能直接卖的拼豆图纸——四张成品图、带色号的高清图纸、矢量交付包、文案台账，一条命令跑完。
 
 **图纸规格对齐线上 2.0：3792 宽 · 每格 36px · 色号字号 15px · 每格一道浅边。**
 取色走豆莉塔引擎（MARD 291 色），与线上逐格一致；skill 只负责视觉层与装包。
 
-Python 3.9+，命令行。在线版无需安装：**<https://chengangrun-ai.github.io/pindou-gongzi/>**
+**打开就能用，不用装：<https://chengangrun-ai.github.io/pindou-gongzi/>**
+（图片全程在你自己的浏览器里处理，不上传任何服务器）
+
+Python 3.9+，也可命令行跑。
 
 ## 踩过的坑
 
