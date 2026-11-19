@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="28" viewBox="0 0 160 28" role="img">
+  <title>PALETTE: MARD 291</title>
+  <defs>
+    <clipPath id="r"><rect width="160" height="28" rx="4"/></clipPath>
+  </defs>
+  <g clip-path="url(#r)">
+    <rect width="76" height="28" fill="#5A5A5A"/>
+    <rect x="76" width="84" height="28" fill="#333333"/>
+  </g>
+  <g font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="13" fill="#ffffff" text-anchor="middle">
+    <text x="38" y="18">PALETTE</text>
+    <text x="118" y="18">MARD 291</text>
+  </g>
+</svg>

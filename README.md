@@ -1,9 +1,9 @@
 # 拼豆公子 · Pindou Gongzi
 
 <p align="left">
-  <a href="https://chengangrun-ai.github.io/pindou-gongzi/"><img src="https://img.shields.io/badge/LIVE_DEMO-Open_in_browser-788C5D?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Live demo"></a>
-  <a href="https://chengangrun-ai.github.io/pindou-gongzi/app.html"><img src="https://img.shields.io/badge/CHART_SPEC-3792x36px-2F3634?style=for-the-badge" alt="Chart spec"></a>
-  <a href="https://github.com/chengangrun-ai/pindou-gongzi"><img src="https://img.shields.io/badge/PALETTE-MARD_291-555555?style=for-the-badge&logo=github" alt="Palette"></a>
+  <a href="https://chengangrun-ai.github.io/pindou-gongzi/"><img src="assets/badges/live-demo.svg" alt="LIVE DEMO · 在线出图" height="28"></a>
+  <a href="https://chengangrun-ai.github.io/pindou-gongzi/app.html"><img src="assets/badges/chart-spec.svg" alt="CHART SPEC · 3792×36px" height="28"></a>
+  <a href="https://github.com/chengangrun-ai/pindou-gongzi"><img src="assets/badges/palette.svg" alt="PALETTE · MARD 291" height="28"></a>
 </p>
 
 把任何图片变成能照着拼、能直接卖的拼豆图纸——四张成品图、带色号的高清图纸、矢量交付包、文案台账，一条命令跑完。
