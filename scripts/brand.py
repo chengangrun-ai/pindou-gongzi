@@ -306,9 +306,15 @@ def _bead(rgb, size, ss=4):
 CHART_PAGE = "1/1"          # 页码，批量导出时可改
 
 
-def render_chart(idx, pal, name, cell=30, max_w=6400, mark=True):
+def render_chart(idx, pal, name, cell=36, max_w=6400, mark=True):
+    """色号图纸：与线上 2.0 同规格。
+
+    规格基线（100 格时）：图宽 3792、每格 36px、色号字号 = 格宽 42% = 15px、
+    每格一道浅边。格数自适应：cell = 3600 // 列数，夹在 24~48 之间。
+    旧版把 cell 锁死在 26px、字号 7px，出图只有 2792 宽，放大必糊——已废弃。
+    """
     NR, NC = idx.shape
-    cell = max(20, min(26, 5200 // NC))
+    cell = max(24, min(48, 3600 // max(NC, 1)))
     M_L, M_R = 96, 96
     M_T = 150
     per_row = 9
@@ -355,8 +361,9 @@ def render_chart(idx, pal, name, cell=30, max_w=6400, mark=True):
             if k < 0:
                 continue
             r, g, b = RGB[k]
-            dr.rectangle([X0 + x * cell, Y0 + y * cell, X0 + (x + 1) * cell, Y0 + (y + 1) * cell],
-                         fill=(int(r), int(g), int(b)))
+            _edge = tuple(int(v + (255 - v) * 0.16) for v in (r, g, b))
+            dr.rectangle([X0 + x * cell, Y0 + y * cell, X0 + (x + 1) * cell - 1, Y0 + (y + 1) * cell - 1],
+                         fill=(int(r), int(g), int(b)), outline=_edge)
 
     # 网格
     for c in range(NC + 1):
@@ -372,8 +379,8 @@ def render_chart(idx, pal, name, cell=30, max_w=6400, mark=True):
     # 色号一定要画——没有色号这图就废了
     # 48 色号字体自适应：色号越长字号越小，保证不出格
     _maxlen = max(len(p[0]) for p in pal) if pal else 2
-    _fsz = int(cell * 0.30 * min(1.0, 3.4 / max(_maxlen, 2)))
-    fs = fnt(max(5, _fsz), True)
+    _fsz = int(cell * 0.42 * min(1.0, 3.4 / max(_maxlen, 2)))
+    fs = fnt(max(11, _fsz), True)
     for y in range(NR):
         for x in range(NC):
             k = idx[y, x]
@@ -421,7 +428,7 @@ def render_chart(idx, pal, name, cell=30, max_w=6400, mark=True):
 
     if mark:
         watermark(canvas, WM, (X0, Y0, X0 + NC * cell, Y0 + NR * cell),
-                  size=max(56, int(cell * 2.6)), alpha=104, spacing=1.45)
+                  size=max(56, int(cell * 1.8)), alpha=120, spacing=1.8)
         brand_footer(canvas, y=H - 40, scale=0.85)
     return canvas
 

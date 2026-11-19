@@ -1,13 +1,15 @@
 # 拼豆公子 · Pindou Gongzi
 
-把任何图片变成能照着拼的拼豆图纸——四张成品图、带色号的图纸、可直接发布的文案台账，一条命令跑完。
+把任何图片变成能照着拼、能直接卖的拼豆图纸——四张成品图、带色号的高清图纸、矢量交付包、文案台账，一条命令跑完。
 
-不依赖任何特定平台。Python 3.9+，命令行。
+**图纸规格对齐线上 2.0：3792 宽 · 每格 36px · 色号字号 15px · 每格一道浅边。**
+取色走豆莉塔引擎（MARD 291 色），与线上逐格一致；skill 只负责视觉层与装包。
 
+Python 3.9+，命令行。在线版无需安装：**<https://chengangrun-ai.github.io/pindou-gongzi/>**
 
 ## 踩过的坑
 
-[`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) 记了 12 条真事，每条都是现象 → 原因 → 修法：
+[`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) 记了 15 条真事，每条都是现象 → 原因 → 修法：
 
 | # | 坑 |
 |---|---|
@@ -23,6 +25,9 @@
 | 10 | 网盘预览会降采样，客户放大就糊 |
 | 11 | 文件被 Excel 占用，写不进去 |
 | 12 | 色数无法从图片反推 |
+| 13 | **图纸被锁死 26px / 字号 7px，出图只有 2792 宽，放大必糊** |
+| 14 | **把「格子放大」当解药，6592 宽反而跟线上规格对不上** |
+| 15 | **静态站漏带 `vendor/jpeg-decoder.mjs`，整个 app.mjs 静默不执行** |
 
 **改代码前先看一遍。**
 
@@ -37,19 +42,27 @@ pip install -r pindou-gongzi/requirements.txt
 cd pindou-gongzi
 echo '{"brand":{"name":"你的品牌名","watermark":"@你的品牌名"}}' > config.local.json
 
-# 3. 把图片丢进素材目录，然后跑
-python scripts/auto_run.py --jobs 4
+# 3. 把图片丢进一个目录，然后跑（一次 ≤20 张）
+python scripts/pack_dolita.py --src ~/Downloads/拼豆素材
 ```
 
-跑完打开 `作品清单.xlsx`，每行带缩略图。
+取色默认走**零依赖 node 桥**（`scripts/dolita_convert.mjs` 直接调 `docs/core`），
+**不需要起任何服务器**，装了 node 就能跑。想在线出图就直接开
+<https://chengangrun-ai.github.io/pindou-gongzi/>，全程本地处理、图片不上传。
+
+跑完打开 `作品清单.xlsx`，每行带缩略图；每件都有 `交付包/`，可以直接发客户。
 
 **剩下的往下看。**
 
 ## 📺 看看效果
 
-[![拼豆公子 — 一张图变成四张成品图](screenshots/halloween-kitty-compare.png)](screenshots/halloween-kitty-compare.png)
+[![原图与拼豆成品对比](screenshots/card-compare.png)](screenshots/card-compare.png)
 
-> ▶️ **[看完整画廊 →](#gallery)** — 67 件真实作品，从纹身手稿到艺术摄影
+**色号图 1:1 原寸**（不是缩略图，下面这张就是图纸原始像素，放大看得清每一格）：
+
+[![色号图 1:1 原寸局部](screenshots/chart-1to1.png)](screenshots/chart-1to1.png)
+
+> ▶️ **[看完整画廊 →](#gallery)**
 
 ## What This Does
 
@@ -57,19 +70,33 @@ python scripts/auto_run.py --jobs 4
 
 ### Key Features
 
-- **四张成品图** — 原图 / 成品图 / 色彩图（带色号）/ 对比图，一次生成
+- **图纸规格对齐线上 2.0** — 100 格 → 3792 宽 / 每格 36px / 色号 15px / 每格浅边，格数与色数自适应
+- **取色 = 豆莉塔引擎** — MARD 291 色，同源 PNG 与线上**逐格 0 差**，不是自己编的色号
+- **四张成品图** — 01 原图卡 / 02 豆板成品图 / 03 带色号图纸 / 04 对比图
 - **双版本** — 带水印（发社交）+ 无标（卖客户）
-- **双轨取色** — 高保真版（128–256 格）+ 精品版（3–17 色）
-- **自动分流** — 角色浮空 / 场景豆板 / 线稿灰阶 / 照片分割，任何图都能处理
-- **文案台账** — Excel 里标题、正文、标签直接复制，规格自动填
-- **质量评级** — 每件自动打 A/B/C，不达标的低色号版直接不出
+- **交付包每次必出** — 矢量 PDF（放大 800% 不糊）+ 无标成品 jpg + 使用说明
+- **三种载体** — PNG 主件（同线上格式）· SVG 矢量（浏览器无限缩放）· PDF（发客户）
+- **批量 ≤20 张** — 一条命令跑完，自动编号、台账、总览、zip
+- **质量评级** — 每件自动打 A/B/C
+
+## 出图规格（这一版最重要的改动）
+
+| 项 | 旧版（已废弃） | 现在 |
+|---|---|---|
+| 每格像素 | 锁死 26px | `3600 // 列数`，夹 24~48；100 格 = **36px** |
+| 色号字号 | `0.30 × cell` = 7px | `0.42 × cell` = **15px** |
+| 100 格图宽 | 2792 | **3792** |
+| 每格边界 | 无缝拼接，放大成色块 | **一道浅边**（提亮 16%） |
+| 放大 6 倍 | 笔画糊成一团 | 与线上同档，色号可认 |
+
+格数和色数**自适应**，不用手挑参数。
 
 ## Installation
 
-### WorkBuddy
+### WorkBuddy / 豆包
 
 ```bash
-git clone https://github.com/<you>/pindou-gongzi.git ~/.workbuddy-ai/skills/pindou-gongzi
+git clone https://github.com/chengangrun-ai/pindou-gongzi.git ~/.workbuddy-ai/skills/pindou-gongzi
 pip install -r ~/.workbuddy-ai/skills/pindou-gongzi/requirements.txt
 ```
 
@@ -77,7 +104,7 @@ pip install -r ~/.workbuddy-ai/skills/pindou-gongzi/requirements.txt
 
 ```bash
 mkdir -p ~/.claude/skills/pindou-gongzi
-cp -R SKILL.md README.md config.json requirements.txt scripts references screenshots \
+cp -R SKILL.md README.md config.json requirements.txt scripts references screenshots docs \
       ~/.claude/skills/pindou-gongzi/
 ```
 
@@ -85,7 +112,7 @@ cp -R SKILL.md README.md config.json requirements.txt scripts references screens
 
 ### ⚠️ 装完第一件事：改成你的品牌
 
-图纸上的水印是**你自己的名字**，不是作者的。默认是占位符 `@你的品牌名`，不改就会印在图上。
+图纸上的水印是你自己的名字，不是作者的。默认是占位符 `@你的品牌名`，不改就会印在图上。
 
 ```bash
 # 方式一：直接改 config.json（会进 git，适合你就是仓库主人）
@@ -109,39 +136,64 @@ python scripts/selftest.py    # 自造一张图跑通全流程
 
 ## Usage
 
-### 批量出图
+### 批量出图（推荐这条路）
 
 ```bash
-python scripts/auto_run.py --src ~/Downloads/拼豆素材
+python scripts/pack_dolita.py --src ~/Downloads/拼豆素材
 ```
 
-扫描目录 → 判断类型 → 抠图 → 双轨取色 → 四图输出 → 台账 → 清理 → 报告。
+取色 → 四图 → 交付包 → 无标版 → 台账 → 总览 → zip，一条命令跑完。
 
-> 图片放进素材目录就行，文件名就是作品名。
-
-### 先看看它怎么判断
+常用参数：
 
 ```bash
-python scripts/auto_run.py --dry
+python scripts/pack_dolita.py --src <目录> --limit 3     # 先做 3 张试水
+python scripts/pack_dolita.py --src <目录> --width 100   # 格数（默认 100，同线上）
+python scripts/pack_dolita.py --src <目录> --threshold 30 # 合并阈值（默认 30，同线上）
 ```
 
-只打印每张图的分类和预处理动作，不出图。适合大批量前先确认。
+环境变量 `DOLITA_API` 可改为走 HTTP 引擎（如 `http://127.0.0.1:5173`）；不设则走零依赖 node 桥，两条路同一份 core，结果逐格一致。
 
-### 其他常用
+### 只重绘图纸（不改色号）
 
 ```bash
-python scripts/auto_run.py --jobs 4          # 4 张并行
-python scripts/auto_run.py --limit 3         # 先做 3 张试水
-python scripts/auto_run.py --pdf             # 顺带出 A4 打印分页
-python scripts/auto_run.py --check           # 已有产物体检
-python scripts/wm_hint.py                    # 扫疑似水印位置
+python scripts/rechart.py
 ```
+
+### 旧版流水线（自带取色，仅在无法起引擎时用）
+
+```bash
+python scripts/auto_run.py --jobs 4
+python scripts/auto_run.py --dry     # 只打印分类，不出图
+```
+
+> 旧版 `auto_run.py` 用的是 skill 自带取色，色号与线上不一致。**要卖图请走 `pack_dolita.py`。**
+
+## 产出长什么样
+
+```
+拼豆成品/
+├── 01_作品名/
+│   ├── 01_原图.png       亚麻纸背景 + 页脚署名（不铺水印）
+│   ├── 02_成品图.png     豆板浮纸 + 水印
+│   ├── 03_色号图.png     3792 宽 / 36px 格 / 每格色号 + 水印
+│   ├── 03_色号图.svg     矢量，浏览器里无限放大
+│   ├── 04_对比图.png     原图 / 成品并排 + 水印
+│   └── 交付包/
+│       ├── 交付_色号图.pdf    单页矢量，放大 800% 不糊
+│       ├── 交付_成品图.jpg    无标，发客户
+│       └── 交付_说明.txt      怎么放大 / 打印 / 买豆
+├── 无标版/01_作品名/     02 / 03 / 04 无水印版
+├── overview/00_总览.png
+├── 作品清单.xlsx
+└── 品牌_N件_全套.zip
+```
+
+文件名全部中文，不用记英文。
 
 ## 色号：真实品牌色板
 
-图纸上的色号不是自己编的，是**真实能买到的品牌色号**。
-
-内置 **5 个品牌色板**（社区开源映射数据）：
+图纸上的色号不是自己编的，是真实能买到的品牌色号。
 
 | 品牌 | 色数 | 配置值 |
 |---|---|---|
@@ -151,298 +203,73 @@ python scripts/wm_hint.py                    # 扫疑似水印位置
 | 咪小窝 | 291 | `"name": "mixiaowo"` |
 | 漫漫 | 289 | `"name": "manman"` |
 
-> ⚠️ 这 5 个品牌的**色值基本完全相同**（同一支豆不同叫法），区别只在色号命名和极少数缺色。
-> 所以不存在「哪个品牌更适合这张图」——按**客户用哪个牌子**选就行，默认 MARD。
+> ⚠️ 这 5 个品牌的色值基本相同（同一支豆不同叫法），区别只在色号编号。**默认 MARD**，与线上一致。
 
-出图前把算出来的颜色吸附到最近的品牌色：
+## 关于「放大就糊」
 
-```
-自编色号  K1 #2A2A2A  →  MARD  H06 #2F2B2F
-自编色号  W1 #FAFAFA  →  MARD  H02 #FEFFFF
-```
+说清楚，别再来回踩：
 
-`config.json` 里可开关和换品牌：
-
-```json
-{ "palette": { "name": "mard", "enabled": true } }
-```
-
-关掉就回到自编色号（`"enabled": false`）。
-
-## 交付给客户（PDF，不是 PNG）
-
-**问题**：直接发 PNG，客户保存后看不清色号——图有 5000+ 像素宽，手机上放大就糊，平台还会再压一次。
-
-**解法**：发 PDF。PDF 放大不糊，打印也不糊。
-
-```bash
-python scripts/deliver.py <作品目录>          # 单个作品
-python scripts/deliver.py --all --bundle     # 全部，按分类打 3 个总包（推荐）
-```
-
-`--bundle` 会在交付目录生成三个 zip（一个分类一个），网盘只传这三个就行。
-
-每件产出 `交付包/`：
-
-| 文件 | 内容 |
-|---|---|
-| `交付_色号图.pdf` | A4 分页，带页码和四角对齐标记 |
-| `交付_成品图.jpg` | 无标成品图，发客户确认效果 |
-| `交付_说明.txt` | 怎么放大、怎么打印、怎么买豆 |
-
-### 其实微信发「文件」就够
-
-| 发送方式 | 结果 |
-|---|---|
-| 微信发**文件** | 原样传输，客户放大能看清 ✅ |
-| 微信发**图片** | 压到 1080 宽 ⚠️ |
-| 小红书发图 | 强制压缩转码，色号糊掉 ❌ |
-| 网盘链接 | 原样下载 ✅ |
-
-一对一发客户，直接发 PNG **文件**（不是图片）就行。
-只有「客户要打印」或「一链接发多人」才需要交付包。
-
-> ⚠️ PDF 适合**屏幕上看**（手机/平板双指放大）。
-> 要**打印出来**的话，20 像素的格子印在 A4 上只有 3.4mm，色号偏小——
-> 打印建议用分块版（每块 64×64 格、放大 2 倍），或在平板上看。
-
-## 降重（压缩体积）
-
-89 件作品跑完约 **3.1 GB**，用 `compress.py` 压到 **1.7 GB**（省 45%），画质肉眼无差：
-
-| 文件 | 处理 | 效果 |
-|---|---|---|
-| `01_原图` `02_成品图` `04_对比图` | 256 色量化 + 抖动 | 2.2MB → 0.6MB |
-| `03_色彩图` | 256 色量化，不抖动（保文字） | 6.0MB → 3.1MB |
-
-```bash
-python scripts/compress.py            # 预演，只报数字
-python scripts/compress.py --yes      # 真压
-```
-
-> 色号图不抖动是关键——抖动会让色号文字边缘发毛，读不清。
-
-## 图纸出品要求（缺一项客户就会问）
-
-每张色号图必须带齐这 8 项信息：
-
-| 项 | 例子 | 为什么必须有 |
-|---|---|---|
-| 作品名 | 云下粉花海 | 客户对单号 |
-| 格数 | 96×128 格 | 核对尺寸，防客诉 |
-| 色数 | 12 色 | 估采购量 |
-| 豆数 | 12,288 颗 | 估成本 |
-| **豆径** | 5.0mm | 买错豆子就废了 |
-| **色卡品牌** | MARD291 | 色号体系不同，买错买不到 |
-| 成品尺寸 | 约 48.0×64.0 cm | 判断放不放得下 |
-| **日期 + 页码** | 2026.10.30  1/1 | 版本管理，防用错旧版 |
-
-底部色卡：每个色号带色块 + 数量。
-
-改版式后要重出全部图纸，用：
-
-```bash
-python scripts/rechart.py --yes
-```
-
-> ⚠️ 不要用 `auto_run --force` 重出——它会重新分配编号（max+len+1），把目录搞乱。
-> `rechart.py` 只重绘色号图，编号和其他文件都不动。
-
-## 产出只有三样（保留分类）
-
-顶层三样，每样内部按 `动漫人物 / 风景 / 墨纹` 分类：
-
-```
-拼豆成品/
-├── 社媒版/                       发小红书
-│   └── 风景/
-│       └── 01_作品名/
-│           ├── 01_原图.png
-│           ├── 02_成品图.png       带水印
-│           ├── 03_色号图.png
-│           └── 04_对比图.png
-├── 交付版/                       给客户
-│   └── 风景/
-│       └── 01_作品名/
-│           ├── 色号图.png          无标
-│           └── 成品图.jpg          无标
-├── 作品清单.xlsx                 缩略图 + 文案 + 两个勾选框
-└── 内部数据/                     台账/备份/日志，隐藏
-```
-
-**不产出**：运行报告、画廊 html、文案 txt、制作规范。
-
-## 目录长什么样
-
-交付目录只有 9 项，其余都在 `内部数据/` 里，不用管：
-
-```
-拼豆成品/
-├── 分类/              带水印版，发社交
-│   ├── 动漫人物/
-│   ├── 风景/
-│   └── 墨纹/
-├── 无LOGO版/          客户交付，同样分三类
-├── 精品版/            低色号版
-├── 作品清单.xlsx      带缩略图，6 个 sheet
-├── 文案_动漫人物.txt   手机上直接复制
-├── 文案_风景.txt
-├── 文案_墨纹.txt
-├── 制作规范.md
-└── 内部数据/          台账 / 备份 / 日志 / 缓存，平时不用打开
-```
-
-> 文件名全部中文，不用记英文。
-
-## 作品清单（带图）
-
-出图后自动生成 `作品清单.xlsx`，**每行带缩略图**，按分类分 sheet：
-
-```
-动漫人物     35 行 + 35 张缩略图
-动漫人物·文案  正文/标签单独一张表，方便复制
-风景 / 风景·文案
-墨纹 / 墨纹·文案
-```
-
-配套导出：
-
-| 文件 | 用途 |
-|---|---|
-| `文案清单_<分类>.csv` | 导入其他工具 |
-| `文案_<分类>.txt` | 手机上直接复制 |
-
-单独重生成（改了台账之后）：
-
-```bash
-python scripts/ledger.py              # 缩略图 88px
-python scripts/ledger.py --thumb 120  # 更大
-python scripts/ledger.py --no-text    # 只要概览
-```
-
-> 文件被 Excel 占用时会自动改存 `_新`，不会中断。
-
-## 只出一个版本：色号最少 + 还原度最高
-
-默认只产出**一个版本**，不再分「高保真」和「精品」。算法在已有调色板上
-**逐步合并最接近的两个颜色**，每步都算还原度，掉到 1.2% 以内就继续，
-跌破就停——得到的就是「还原度还够的前提下，色号最少」的那一版。
-
-实测（45 件）：
-
-| 原色数 | 合并后 | 还原度变化 |
-|---|---|---|
-| 22 | **6** | 95.59% → 94.82% |
-| 24 | **7** | 93.58% → 92.50% |
-| 25 | **4** | 93.47% → 92.59% |
-| 33 | **9** | 93.67% → 92.71% |
-| 31 | **6** | 91.89% → 90.84% |
-
-**平均色数从 25 降到 5.9**，还原度只掉 1% 左右。
-
-配置：
-
-```json
-{ "output": { "single": true, "fidelity_floor": 0.965, "min_colors": 4 } }
-```
-
-`single: false` 回到「高保真 + 精品」双版本。
-
-## 自动分类
-
-出图后按风格自动归到 `分类/动漫人物`、`分类/风景`、`分类/墨纹`。
-
-判定顺序：**名字关键词** → 线稿 → 场景 → 兜底（动漫人物）。
-关键词写在 `config.json` 的 `categories.rules`，加词就能改分类，不用改代码。
-
-```json
-{
-  "categories": {
-    "order": ["动漫人物", "风景", "墨纹"],
-    "fallback": "动漫人物",
-    "rules": {
-      "动漫人物": ["Q版", "Kitty", "路飞", "索隆", "山治"],
-      "墨纹": ["飞龙", "曼陀罗", "弓箭", "龙"],
-      "风景": ["云下", "山丘", "红裙", "白墙"]
-    }
-  }
-}
-```
-
-单词关键词（如「浪」）只做完全匹配，避免「冲浪」被误判。
-不想分类就加 `--no-cat`。
-
-单独查看某个名字会分到哪：
-
-```bash
-python scripts/categorize.py 飞龙 云下红裙 Q版山治
-```
-
-## 四种处理模式
-
-任何图片进来，都会被分到其中一条路。
-
-### 角色
-
-抠图后浮空贴在亚麻纸上，投影跟着轮廓走。适合有明确主体的插画、动漫角色。
-
-### 场景
-
-整幅做成豆板，带厚度和投影，像拼好放在桌上。适合风景、街拍、艺术摄影。
-
-### 线稿
-
-4 档灰阶，每格取暗分位保住细线。适合纹身手稿、素描、漫画线稿、文档截图。
-
-> 线稿模式是唯一能做到 4 色的路径——因为线稿本来就只有黑白。
-
-### 照片
-
-grabCut 前景分割 + 覆盖率自检，抠不干净自动换方法。适合真人、实拍。
+- **PNG 是位图**，放大到 300% 以上一定糊——线上那张也一样，这是像素决定的。
+- 所以主件 PNG 按线上规格出（3792 / 36px / 15px 字 / 每格浅边），**看整体、发微信用它**。
+- **要放大到任意倍数都不糊，用 SVG 或 PDF**：字是矢量文字对象，能选中、能搜、打印也清楚。交付包里默认就是矢量 PDF。
+- 微信/网盘的**预览**会降采样，客户看着糊——让他下载原文件或直接看 PDF。
 
 ## Gallery
 
-<p>
-  <img src="./screenshots/halloween-kitty-compare.png" width="32%" alt="万圣Kitty：原图与拼豆成品对比" />
-  <img src="./screenshots/dragon-product.png" width="32%" alt="纹身手稿「飞龙」成品图，4 色" />
-  <img src="./screenshots/archer-chart.png" width="32%" alt="弓箭手：带色号图纸，每格可读" />
-</p>
-
-> 左：万圣Kitty 原图与拼豆对比（7 色 4613 颗）｜中：纹身手稿「飞龙」4 色 16198 颗｜右：带色号的图纸，每格可读
-
+| | |
+|---|---|
+| [![原图卡](screenshots/card-original.png)](screenshots/card-original.png) | [![豆板成品图](screenshots/card-bead.png)](screenshots/card-bead.png) |
+| 01 原图卡 · 亚麻纸 + 页脚 | 02 豆板成品图 · 带水印 |
+| [![色号图整张](screenshots/chart-full.png)](screenshots/chart-full.png) | [![对比图](screenshots/card-compare.png)](screenshots/card-compare.png) |
+| 03 色号图 · 100×131 · 22 色 · 13,100 颗 | 04 对比图 · 原图 / 成品并排 |
 
 ## Architecture
 
 | 文件 | 作用 | 何时加载 |
 |---|---|---|
-| `SKILL.md` | 触发条件、流程、10 条红线 | 每次会话 |
+| `SKILL.md` | 触发条件、流程、红线 | 每次会话 |
 | `README.md` | 人类和 Agent 的入口文档 | 需要安装/理解时 |
-| `config.json` | 品牌、路径、豆径、阈值 | 启动时 |
-| `scripts/auto_run.py` | 主流程，一条命令跑完 | 出图时 |
-| `scripts/cutout.py` | 抠图（平色判据 / grabCut） | 抠图时 |
-| `scripts/lowcolor.py` | 低色号取色、线稿模式 | 降色号时 |
+| `config.json` | 品牌、图纸规格、引擎地址、阈值 | 启动时 |
+| `docs/` | **豆莉塔在线工作台（纯静态，GitHub Pages 托管）** | 出图取色时 |
+| `scripts/pack_dolita.py` | **主流程：取色 → 四图 → 交付包 → 装包** | 出图时 |
+| `scripts/chart_hq.py` | 色号矩阵原生排版：PNG / SVG / 矢量 PDF | 出图纸时 |
 | `scripts/brand.py` | 亚麻纸、水印、四张成品图 | 渲染时 |
-| `scripts/extras.py` | 预处理、查重、采购单、画廊、PDF | 按需 |
-| `references/制作规范.md` | 748 行完整规范，含全部参数与踩坑 | 改参数前 |
+| `scripts/deliver.py` | 交付包组装 | 交付时 |
+| `scripts/ledger.py` | 台账 xlsx（带缩略图） | 装包时 |
+| `references/制作规范.md` | 完整规范，含全部参数与踩坑 | 改参数前 |
+
+### 分工（别搞混）
+
+```
+豆莉塔引擎（docs/ + core/）  → 算法、格数、MARD 色号   ← 与线上逐格一致
+chart_hq.py                 → 03 图纸排版（PNG/SVG/PDF）← 与线上同规格
+brand.py / deliver.py       → 02/04、水印、交付包、装包  ← 视觉层
+```
+
+三块拼起来才是完整产出，缺一块都不对。
 
 ## Philosophy
 
-1. **不做模型，只做算法。** 取色是 k-means + 众数，不是神经网络。同样输入永远同样输出，不需要训练，也不需要 GPU。
-2. **分辨率优先于色数。** 宁可 256 格 4 色，也不要 96 格 20 色——格数决定「看不看得出形状」，色数只决定「像不像」。
-3. **碎点率是一等指标。** `speckle ≤ 0.048` 是硬门槛。低于这个值图才干净，客户才拼得动。
-4. **宁可不出，不出次品。** 低色号版达不到标准就跳过，只留高保真版，不硬凑。
-5. **配置驱动，不写死。** 品牌、路径、豆径、阈值全在 `config.json`。代码里出现魔法数字就是 bug。
+- **不做模型，只做算法。** 取色是众数 + 阈值合并，不是神经网络。同样输入永远同样输出，不需要 GPU。
+- **规格对齐优先于自我发挥。** 线上是 3792 / 36px，就出 3792 / 36px；擅自放大不是改进，是跑偏。
+- **位图和矢量各司其职。** PNG 给人看，SVG/PDF 给人放大和打印。别拿位图去解决放大问题。
+- **宁可不出，不出次品。** 达不到评级就跳过，不硬凑。
+- **配置驱动，不写死。** 品牌、规格、阈值全在 `config.json`。代码里出现魔法数字就是 bug。
 
 ## Requirements
 
 - Python 3.9+
-- `pip install -r requirements.txt`（pillow / numpy / scipy / openpyxl / opencv-python-headless）
+- `pip install -r requirements.txt`（pillow / numpy / scipy / openpyxl / opencv-python-headless / reportlab / qrcode）
 - 中文字体：Windows 自带微软雅黑；macOS 用苹方；Linux 需装 Noto Sans CJK 或文泉驿
+- 取色引擎：本仓库 `docs/` 起个静态服务即可，或直接用在线版
 
 ## Credits
 
-Created by 公子 · [@你的GitHub](https://github.com/).
+Created by 公子 · [@chengangrun-ai](https://github.com/chengangrun-ai).
+
+取色引擎豆莉塔 DOLITA 基于 [Zippland/perler-beads](https://github.com/Zippland/perler-beads)（AGPL-3.0）二次开发。
 
 ## License
 
 MIT — Use it, modify it, share it.
+（`docs/` 与 `core/` 内的引擎代码沿用 AGPL-3.0，见源项目。）

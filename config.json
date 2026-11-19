@@ -16,14 +16,17 @@
   "render": {
     "card_w": 1080,
     "card_h": 1440,
-    "chart_min_cell": 20,
-    "chart_max_cell": 26,
+    "chart_min_cell": 24,
+    "chart_max_cell": 48,
     "shadow_strength": 0.34,
     "paper_style": "linen",
     "wm_angle": 28,
     "wm_alpha": 155,
     "wm_ratio": 15,
-    "badge_cm": true
+    "badge_cm": true,
+    "chart_cell_base": 3600,
+    "chart_code_ratio": 0.42,
+    "chart_cell_edge": 0.16
   },
   "pipeline": {
     "hi_cols": [
@@ -165,8 +168,14 @@
     "max_delta": 16.0
   },
   "grid": {
-    "cols": 96,
-    "rows": 128,
-    "max_cols": 160
+    "cols": 100,
+    "rows": 132,
+    "max_cols": 200
+  },
+  "engine": {
+    "name": "dolita",
+    "api": "http://127.0.0.1:5173",
+    "site": "https://chengangrun-ai.github.io/pindou-gongzi/",
+    "note": "取色与格数一律走豆莉塔平台（MARD 291），skill 只做视觉层与装包"
   }
 }

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>豆莉塔工作台 · 图片转拼豆图纸</title>
+<meta name="description" content="上传图片，调格数与品牌色号，导出带色号、坐标、用量统计的拼豆图纸。全程本地处理。">
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Manrope:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<a class="skip" href="#workspace">跳到工作台</a>
+<header class="topbar">
+  <a class="brand" href="index.html">
+    <img src="assets/logo.svg" alt="豆莉塔 Logo" width="28" height="28">
+    <span>豆莉塔工作台</span>
+  </a>
+  <div class="topbar-actions">
+    <span class="local-badge" title="图片只在本浏览器处理，不上传">本地处理</span>
+    <button class="btn btn-ghost" id="donateBtn" type="button">请喝奶茶</button>
+    <a class="btn btn-ghost" href="index.html">返回首页</a>
+  </div>
+</header>
+
+<main id="workspace" class="layout">
+  <!-- ===== 左栏：上传 + 参数 + 色板 ===== -->
+  <aside class="panel-col">
+    <section class="card" id="uploadCard">
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="上传图片，支持拖拽或点击选择">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m0 0l-4 4m4-4l4 4"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+        <p class="dz-title">拖图片进来，或点击选择</p>
+        <p class="dz-sub">PNG / JPEG / BMP · 全程本地处理</p>
+        <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.bmp,image/png,image/jpeg,image/bmp" hidden>
+      </div>
+      <div class="file-meta" id="fileMeta" hidden></div>
+      <div class="upload-error" id="uploadError" role="alert" hidden></div>
+    </section>
+
+    <section class="card" id="controlsCard" hidden>
+      <h2 class="card-title">参数</h2>
+      <div class="field">
+        <label for="widthRange">格数（宽）<output id="widthOut">100</output></label>
+        <input type="range" id="widthRange" min="10" max="300" step="1" value="100">
+      </div>
+      <div class="field">
+        <label for="brandSelect">品牌色号</label>
+        <select id="brandSelect"></select>
+      </div>
+      <div class="field">
+        <label for="thresholdRange">相近色合并阈值<output id="thresholdOut">30</output></label>
+        <input type="range" id="thresholdRange" min="0" max="100" step="1" value="30">
+        <div class="field-row preset-row">
+          <button class="btn btn-ghost" type="button" data-threshold="30">原版默认 30</button>
+          <button class="btn btn-ghost" type="button" data-threshold="10">成品风格 10</button>
+          <button class="btn btn-ghost" type="button" data-preset="reference">复刻参考图</button>
+        </div>
+        <p class="muted small">阈值越小颜色越多。30 对齐原版默认；10 更接近常见成品作品的用色量；「复刻参考图」= 100 格 + 不合并 + 干净色块。</p>
+      </div>
+      <div class="field">
+        <label for="modeSelect">取色方式</label>
+        <select id="modeSelect">
+          <option value="dominant">主导色（推荐，边界利落）</option>
+          <option value="average">平均色（柔和过渡）</option>
+        </select>
+      </div>
+      <div class="field-row">
+        <button class="btn btn-ghost" id="bgRemoveBtn" type="button" aria-pressed="false">一键去背景</button>
+        <button class="btn btn-ghost" id="resetBtn" type="button">重置</button>
+      </div>
+    </section>
+
+    <section class="card" id="paletteCard" hidden>
+      <div class="card-head">
+        <h2 class="card-title">色号清单</h2>
+        <span class="muted" id="paletteSummary"></span>
+      </div>
+      <p class="muted small">点「排除」可去掉不想要的颜色，整图自动重新映射。</p>
+      <ul class="palette-list" id="paletteList"></ul>
+      <button class="btn btn-ghost" id="restoreColorsBtn" type="button" hidden>恢复全部颜色</button>
+    </section>
+  </aside>
+
+  <!-- ===== 右栏：预览 + 导出 + 水印 ===== -->
+  <section class="stage-col">
+    <div class="card stage-card">
+      <div class="stage-empty" id="stageEmpty">
+        <svg viewBox="0 0 64 64" width="56" height="56" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#E3E6DD"/><g fill="#F4F5F0"><circle cx="20" cy="20" r="7"/><circle cx="32" cy="20" r="7"/><circle cx="44" cy="20" r="7"/><circle cx="20" cy="32" r="7"/><circle cx="32" cy="32" r="7"/><circle cx="44" cy="32" r="7"/><circle cx="20" cy="44" r="7"/><circle cx="32" cy="44" r="7"/><circle cx="44" cy="44" r="7"/></g></svg>
+        <p>还没有图纸。先在左边传一张图。</p>
+      </div>
+      <div class="stage-wrap" id="stageWrap" hidden>
+        <canvas id="previewCanvas" aria-label="拼豆图纸预览，点击格子可改色"></canvas>
+        <div class="cell-pop" id="cellPop" hidden>
+          <label for="cellColorSelect">选中格 <span id="cellCoord"></span></label>
+          <select id="cellColorSelect"></select>
+          <div class="cell-pop-actions">
+            <button class="btn btn-primary" id="cellApplyBtn" type="button">改色</button>
+            <button class="btn btn-ghost" id="cellCancelBtn" type="button">取消</button>
+          </div>
+        </div>
+      </div>
+      <div class="stats-bar" id="statsBar" hidden>
+        <span><b id="statGrid">–</b> 格</span>
+        <span><b id="statBeads">–</b> 颗</span>
+        <span><b id="statColors">–</b> 色</span>
+        <span><b id="statSize">–</b>（5mm 豆）</span>
+      </div>
+    </div>
+
+    <div class="card" id="exportCard" hidden>
+      <h2 class="card-title">导出</h2>
+      <div class="export-actions">
+        <button class="btn btn-primary" id="openDownloadBtn" type="button">下载图纸 / 导出</button>
+        <button class="btn btn-ghost" id="exportCsvBtn" type="button">采购清单 CSV</button>
+        <button class="btn btn-ghost" id="exportJsonBtn" type="button">清单 JSON</button>
+      </div>
+      <p class="muted small" id="exportHint"></p>
+    </div>
+
+    <div class="card" id="wmCard" hidden>
+      <div class="card-head">
+        <h2 class="card-title">水印（你自己的）</h2>
+        <label class="switch"><input type="checkbox" id="wmEnable"><span>启用</span></label>
+      </div>
+      <div class="wm-body" id="wmBody" hidden>
+        <div class="field-row">
+          <label class="opt"><input type="radio" name="wmType" value="text" checked> 文字</label>
+          <label class="opt"><input type="radio" name="wmType" value="logo"> Logo 图片</label>
+        </div>
+        <div class="field" id="wmTextField">
+          <label for="wmText">水印文字（英文/数字，中文请用 Logo）</label>
+          <input type="text" id="wmText" value="@DOLITA" maxlength="40" placeholder="@yourbrand">
+        </div>
+        <div class="field" id="wmLogoField" hidden>
+          <label for="wmLogoInput">Logo 图片（透明底 PNG 最佳）</label>
+          <input type="file" id="wmLogoInput" accept=".png,.jpg,.jpeg,.bmp,image/png,image/jpeg,image/bmp">
+          <div class="field"><label for="wmLogoWidth">Logo 宽度 <output id="wmLogoWidthOut">160 px</output></label>
+          <input type="range" id="wmLogoWidth" min="40" max="600" step="10" value="160"></div>
+        </div>
+        <div class="field">
+          <label>位置</label>
+          <div class="pos-grid" id="wmPosGrid" role="radiogroup" aria-label="水印位置"></div>
+          <label class="opt"><input type="checkbox" id="wmTile"> 整图平铺</label>
+        </div>
+        <div class="field"><label for="wmOpacity">透明度 <output id="wmOpacityOut">70%</output></label>
+          <input type="range" id="wmOpacity" min="0" max="100" value="70"></div>
+        <div class="field" id="wmColorField"><label for="wmColor">文字颜色</label><input type="color" id="wmColor" value="#16211B"></div>
+        <div class="wm-preview-wrap">
+          <canvas id="wmPreview" aria-label="水印效果预览"></canvas>
+        </div>
+        <p class="muted small" id="wmError" role="alert" hidden></p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ===== 下载图纸设置（底部抽屉，对齐线上交互） ===== -->
+<div class="modal-overlay dl-overlay" id="dlOverlay" hidden>
+  <div class="modal-card dl-card" role="dialog" aria-modal="true" aria-labelledby="dlTitle">
+    <div class="dl-head">
+      <h2 id="dlTitle" class="dl-title">下载图纸设置</h2>
+      <button class="modal-close dl-close" id="dlClose" type="button" aria-label="关闭">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+
+    <div class="dl-body">
+      <div class="field">
+        <label for="dlAuthor">作者署名</label>
+        <input type="text" id="dlAuthor" maxlength="30" placeholder="@你的社交账号（留空则不显示）">
+      </div>
+      <div class="field">
+        <label for="dlCode">画册分享码</label>
+        <input type="text" id="dlCode" maxlength="20" placeholder="发布到画册后获得的分享码（留空则不显示）">
+      </div>
+
+      <div class="dl-row">
+        <span>显示网格线</span>
+        <label class="switch"><input type="checkbox" id="optGrid" checked></label>
+      </div>
+      <div class="field dl-sub" id="dlGridSub">
+        <label for="optInterval">网格线间隔（每 N 格画一条线）<output id="dlIntervalOut">10</output></label>
+        <input type="range" id="optInterval" min="1" max="30" step="1" value="10">
+        <label class="dl-swatch-label">网格线颜色</label>
+        <div class="swatches" id="dlSwatches" role="radiogroup" aria-label="网格线颜色"></div>
+        <select id="optGridColor" hidden>
+          <option value="#555555">深灰</option><option value="#FF0000">红</option><option value="#0000FF">蓝</option>
+          <option value="#008000">绿</option><option value="#800080">紫</option><option value="#FFA500">橙</option>
+        </select>
+      </div>
+
+      <div class="dl-row">
+        <span>显示坐标数字</span>
+        <label class="switch"><input type="checkbox" id="optCoords" checked></label>
+      </div>
+      <div class="dl-row">
+        <span>显示格内色号</span>
+        <label class="switch"><input type="checkbox" id="optNumbers" checked></label>
+      </div>
+      <div class="dl-row">
+        <span>底部用料清单</span>
+        <label class="switch"><input type="checkbox" id="optStats" checked></label>
+      </div>
+      <div class="dl-row">
+        <span>左上角品牌小标</span>
+        <label class="switch"><input type="checkbox" id="optMark" checked></label>
+      </div>
+    </div>
+
+    <div class="dl-actions">
+      <button class="btn btn-primary" id="exportPngBtn" type="button">生成图纸</button>
+      <button class="btn btn-ghost" id="exportSourceBtn" type="button">导出源数据</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== 打赏弹窗（深色高级感） ===== -->
+<div class="modal-overlay donate-overlay" id="donateOverlay" hidden>
+  <div class="modal-card donate-card" role="dialog" aria-modal="true" aria-labelledby="donateTitle" aria-describedby="donateMsg" id="donateCard">
+    <button class="modal-close donate-close" id="donateClose" type="button" aria-label="关闭">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+
+    <div class="donate-head">
+      <div class="donate-avatar" id="donateAvatar" aria-hidden="true"><span id="donateAvatarText">豆</span></div>
+      <div class="donate-head-text">
+        <h2 id="donateTitle" class="donate-title">豆莉塔作者</h2>
+        <p class="donate-msg" id="donateMsg"></p>
+      </div>
+    </div>
+
+    <div class="donate-amounts" id="donateAmounts" role="radiogroup" aria-label="赞赏金额"></div>
+
+    <div class="donate-tabs" id="donateTabs" role="tablist" aria-label="赞赏方式" data-active="wechat">
+      <span class="donate-tab-ind" aria-hidden="true"></span>
+      <button class="donate-tab active" id="tabWechat" role="tab" aria-selected="true" aria-controls="donateQrWrap" type="button">微信赞赏</button>
+      <button class="donate-tab" id="tabAlipay" role="tab" aria-selected="false" aria-controls="donateQrWrap" type="button">支付宝</button>
+    </div>
+
+    <div class="donate-qr-wrap" id="donateQrWrap">
+      <img id="donateQr" src="public/wechat-qr.png" alt="微信赞赏码">
+    </div>
+
+    <p class="donate-quote" id="donateQuote">“你们就是我的动力源泉❤️”</p>
+
+    <p class="donate-hint" id="donateHint" role="status">请使用微信扫码赞赏</p>
+    <p class="donate-note" id="donateNote"></p>
+    <p class="donate-contact" id="donateContact"></p>
+  </div>
+</div>
+
+<div class="toast-region" id="toastRegion" aria-live="polite"></div>
+<footer class="app-foot">
+  <span>豆莉塔 DOLITA · AGPL-3.0 · 基于 <a href="https://github.com/Zippland/perler-beads" rel="noopener">Zippland/perler-beads</a></span>
+  <span><a href="privacy.html">隐私</a> · <a href="terms.html">条款</a></span>
+</footer>
+<script type="module" src="app.mjs"></script>
+</body>
+</html>

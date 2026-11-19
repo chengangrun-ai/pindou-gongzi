@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" role="img" aria-label="微信收款码占位图，请替换为你自己的收款码">
+  <rect width="320" height="320" rx="16" fill="#FFFFFF"/>
+  <rect x="8" y="8" width="304" height="304" rx="12" fill="none" stroke="#2F9E6E" stroke-width="2" stroke-dasharray="6 6"/>
+  <g fill="#16211B">
+    <rect x="36" y="36" width="64" height="64" rx="8"/><rect x="220" y="36" width="64" height="64" rx="8"/><rect x="36" y="220" width="64" height="64" rx="8"/>
+  </g>
+  <g fill="#FFFFFF">
+    <rect x="48" y="48" width="40" height="40" rx="4"/><rect x="232" y="48" width="40" height="40" rx="4"/><rect x="48" y="232" width="40" height="40" rx="4"/>
+  </g>
+  <g fill="#16211B">
+    <rect x="58" y="58" width="20" height="20"/><rect x="242" y="58" width="20" height="20"/><rect x="58" y="242" width="20" height="20"/>
+  </g>
+  <g fill="#C9D2C9">
+    <rect x="120" y="40" width="12" height="12"/><rect x="140" y="56" width="12" height="12"/><rect x="160" y="40" width="12" height="12"/><rect x="180" y="60" width="12" height="12"/>
+    <rect x="120" y="80" width="12" height="12"/><rect x="150" y="92" width="12" height="12"/><rect x="180" y="84" width="12" height="12"/>
+    <rect x="40" y="120" width="12" height="12"/><rect x="60" y="140" width="12" height="12"/><rect x="80" y="124" width="12" height="12"/>
+    <rect x="232" y="120" width="12" height="12"/><rect x="252" y="140" width="12" height="12"/><rect x="272" y="124" width="12" height="12"/>
+    <rect x="120" y="232" width="12" height="12"/><rect x="144" y="252" width="12" height="12"/><rect x="168" y="236" width="12" height="12"/><rect x="192" y="256" width="12" height="12"/><rect x="216" y="240" width="12" height="12"/><rect x="240" y="260" width="12" height="12"/><rect x="264" y="244" width="12" height="12"/>
+  </g>
+  <rect x="104" y="128" width="112" height="64" rx="10" fill="#2F9E6E"/>
+  <text x="160" y="154" text-anchor="middle" font-family="sans-serif" font-size="15" font-weight="600" fill="#FFFFFF">替换为你的</text>
+  <text x="160" y="176" text-anchor="middle" font-family="sans-serif" font-size="15" font-weight="600" fill="#FFFFFF">微信收款码</text>
+  <text x="160" y="300" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#77837A">配置：web/donate.config.json</text>
+</svg>

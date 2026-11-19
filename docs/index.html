@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>豆莉塔 DOLITA · 免费拼豆图纸生成器｜图片转真实色号图纸</title>
+<meta name="description" content="豆莉塔把任意图片变成能照着拼的拼豆图纸：MARD、COCO、漫漫、盼盼、咪小窝 291 色真实色号，杂色自动合并，背景一键剥离，用量清单算好。免费开源，图片只在你的浏览器里处理。">
+<meta property="og:title" content="豆莉塔 DOLITA · 免费拼豆图纸生成器">
+<meta property="og:description" content="一张图，一块豆板，照着拼就行。291 色真实色号，免费开源，图片不上传。">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/logo.svg">
+<meta name="theme-color" content="#F4F5F0">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Manrope:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"豆莉塔 DOLITA","applicationCategory":"DesignApplication","operatingSystem":"Web, Windows, macOS, Linux","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"description":"把任意图片变成带真实品牌色号的拼豆图纸，支持批量与水印，桌面与网页输出逐像素一致。","license":"https://www.gnu.org/licenses/agpl-3.0.html"}
+</script>
+<style>
+/* ===== 设计令牌（landing-page-design 规范，执行者勿改） ===== */
+:root{
+  --paper:#F4F5F0; --surface:#FFFFFF; --ink:#16211B; --ink-2:#4A564E; --ink-3:#77837A;
+  --accent:#2F9E6E; --accent-deep:#1E6B49; --sun:#F2B33D; --coral:#E8604C; --sky:#4C86C6;
+  --line:#E3E6DD; --dark:#1F1F1F;
+  --sp-25:2px; --sp-50:4px; --sp-75:8px; --sp-100:12px; --sp-200:16px; --sp-300:24px;
+  --sp-400:32px; --sp-500:40px; --sp-600:48px; --sp-700:64px; --sp-800:80px; --sp-900:96px;
+  --r-sm:4px; --r-md:8px; --r-lg:12px; --r-xl:16px; --r-2xl:24px; --r-full:9999px;
+  --ease:cubic-bezier(0.22,1,0.36,1);
+  --font:"Manrope","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased;text-wrap:pretty}
+img,svg{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;border:0;background:none;cursor:pointer;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-sm)}
+::selection{background:var(--accent);color:#fff}
+
+/* ===== 命名文字样式（B1，字号全部落在 Tailwind 刻度） ===== */
+.heading-1{font-size:60px;line-height:60px;font-weight:600;text-wrap:balance}
+.heading-2{font-size:48px;line-height:48px;font-weight:600;text-wrap:balance}
+.heading-3{font-size:36px;line-height:40px;font-weight:600;text-wrap:balance}
+.heading-5{font-size:24px;line-height:32px;font-weight:600;text-wrap:balance}
+.title-2{font-size:18px;line-height:28px;font-weight:500}
+.title-3{font-size:16px;line-height:24px;font-weight:500}
+.body-2{font-size:16px;line-height:24px;font-weight:500}
+.body-3{font-size:16px;line-height:24px;font-weight:400}
+.body-5{font-size:14px;line-height:20px;font-weight:500}
+.body-6{font-size:14px;line-height:20px;font-weight:400}
+.button-lg{font-size:18px;line-height:28px;font-weight:600}
+.button-md{font-size:16px;line-height:24px;font-weight:600}
+.caption-2{font-size:14px;line-height:20px;font-weight:400}
+.caption-4{font-size:12px;line-height:16px;font-weight:500}
+
+.wrap{max-width:1120px;margin-inline:auto;padding-inline:var(--sp-300)}
+.skip{position:absolute;left:var(--sp-200);top:-64px;z-index:100;background:var(--ink);color:#fff;padding:var(--sp-75) var(--sp-100);border-radius:var(--r-md);transition:top 300ms var(--ease)}
+.skip:focus{top:var(--sp-200)}
+
+/* ===== 按钮 ===== */
+.btn{display:inline-flex;align-items:center;gap:var(--sp-75);padding:var(--sp-75) var(--sp-100);border-radius:var(--r-md);transition:transform 500ms var(--ease),background-color 300ms var(--ease),color 300ms var(--ease)}
+.btn:active{transform:scale(0.98)}
+.btn-primary{background:var(--ink);color:#fff}
+.btn-primary:hover{background:var(--accent-deep)}
+.btn-ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn-ghost:hover{background:var(--surface)}
+.btn svg{width:20px;height:20px}
+
+/* ===== 浮动导航（B7） ===== */
+.nav-shell{position:sticky;top:var(--sp-100);z-index:50;padding-inline:var(--sp-200)}
+.nav{display:flex;align-items:center;gap:var(--sp-300);width:fit-content;margin-inline:auto;padding:var(--sp-75) var(--sp-200);background:rgba(255,255,255,0.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:var(--r-full)}
+.brand{display:flex;align-items:center;gap:var(--sp-75)}
+.brand img{width:28px;height:28px;border-radius:var(--r-md)}
+.brand-name{font-weight:700;font-size:16px;line-height:24px}
+.nav-links{display:flex;align-items:center;gap:var(--sp-300)}
+.nav-links a{color:var(--ink-2);transition:color 300ms var(--ease)}
+.nav-links a:hover{color:var(--ink)}
+.nav-links a[aria-current="page"]{color:var(--ink);font-weight:600}
+.nav .btn{padding:var(--sp-50) var(--sp-100)}
+.menu-btn{display:none;width:32px;height:32px;position:relative}
+.menu-btn span{position:absolute;left:6px;right:6px;height:2px;background:var(--ink);border-radius:2px;transition:transform 500ms var(--ease),top 500ms var(--ease)}
+.menu-btn span:nth-child(1){top:11px}
+.menu-btn span:nth-child(2){top:19px}
+.menu-btn[aria-expanded="true"] span:nth-child(1){top:15px;transform:rotate(45deg)}
+.menu-btn[aria-expanded="true"] span:nth-child(2){top:15px;transform:rotate(-45deg)}
+.mobile-panel{position:fixed;inset:0;z-index:60;background:rgba(244,245,240,0.96);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--sp-400);opacity:0;pointer-events:none;transition:opacity 500ms var(--ease)}
+.mobile-panel.open{opacity:1;pointer-events:auto}
+.mobile-panel a{font-size:24px;line-height:32px;font-weight:600;opacity:0;transform:translateY(24px);transition:opacity 500ms var(--ease),transform 500ms var(--ease)}
+.mobile-panel.open a{opacity:1;transform:translateY(0)}
+.mobile-close{position:absolute;top:var(--sp-300);right:var(--sp-300);width:40px;height:40px;display:grid;place-items:center;border:1px solid var(--line);border-radius:var(--r-full);background:var(--surface)}
+
+/* ===== Hero ===== */
+.hero{padding-top:var(--sp-700);padding-bottom:var(--sp-800)}
+.hero-grid{display:grid;grid-template-columns:1.05fr 0.95fr;gap:var(--sp-600);align-items:center}
+.hero h1{max-width:680px;background:linear-gradient(90deg,#000000,#666666);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero-sub{max-width:680px;margin-top:var(--sp-300);color:var(--ink-2)}
+.hero-cta{margin-top:var(--sp-400);display:flex;align-items:center;gap:var(--sp-200);flex-wrap:wrap}
+.hero-proof{margin-top:var(--sp-300);color:var(--ink-3);display:flex;align-items:center;gap:var(--sp-75);flex-wrap:wrap}
+.hero-proof .dot{width:4px;height:4px;border-radius:var(--r-full);background:var(--ink-3)}
+.board-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-2xl);padding:var(--sp-300);position:relative}
+.board-card .board{width:100%;height:auto;border-radius:var(--r-xl);background:var(--paper)}
+.board-meta{display:flex;justify-content:space-between;align-items:center;margin-top:var(--sp-200);color:var(--ink-3)}
+.board-chip{display:inline-flex;align-items:center;gap:var(--sp-50);padding:var(--sp-25) var(--sp-75);border:1px solid var(--line);border-radius:var(--r-full);background:var(--surface)}
+.board-chip i{width:10px;height:10px;border-radius:var(--r-full);display:inline-block}
+.bead{transform-origin:center;transform-box:fill-box;animation:bead-in 500ms var(--ease) both}
+@keyframes bead-in{from{opacity:0;transform:scale(0.5)}to{opacity:1;transform:scale(1)}}
+
+/* ===== 区块通用 ===== */
+.section{padding-block:var(--sp-800)}
+.section-head{max-width:680px;margin-bottom:var(--sp-500)}
+.section-head p{margin-top:var(--sp-200);color:var(--ink-2)}
+.eyebrow{color:var(--accent-deep);margin-bottom:var(--sp-100)}
+.reveal{transition:opacity 700ms var(--ease),transform 700ms var(--ease)}
+.reveal.armed{opacity:0;transform:translateY(32px)}
+.reveal.in{opacity:1;transform:translateY(0)}
+
+/* ===== 收益卡片 ===== */
+.benefits-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-300)}
+.benefit{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-xl);padding:var(--sp-300);transition:transform 500ms var(--ease)}
+.benefit:hover{transform:translateY(-4px)}
+.benefit .icon{width:40px;height:40px;border-radius:var(--r-lg);background:var(--paper);display:grid;place-items:center;margin-bottom:var(--sp-200);color:var(--accent-deep)}
+.benefit .icon svg{width:22px;height:22px}
+.benefit h3{margin-bottom:var(--sp-75)}
+.benefit p{color:var(--ink-2)}
+
+/* ===== 标语逐词显现（B11） ===== */
+.tagline{padding-block:var(--sp-900)}
+.tagline-text{max-width:680px}
+.tagline-text .w{color:var(--ink);opacity:0.3;transition:opacity 600ms var(--ease)}
+.tagline-text .w.on{opacity:1}
+
+/* ===== 步骤 ===== */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-300)}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-xl);padding:var(--sp-300)}
+.step-num{width:32px;height:32px;border-radius:var(--r-full);background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:700;font-size:16px;line-height:24px;margin-bottom:var(--sp-200)}
+.step h3{margin-bottom:var(--sp-75)}
+.step p{color:var(--ink-2)}
+
+/* ===== 事实面板 ===== */
+.proof{background:var(--dark);color:#fff;border-radius:var(--r-2xl);padding:var(--sp-600)}
+.proof-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-400)}
+.proof-item .big{font-size:36px;line-height:40px;font-weight:600;color:#fff}
+.proof-item .lbl{margin-top:var(--sp-75);color:#9B9B9B}
+.proof-note{margin-top:var(--sp-400);color:#9B9B9B}
+.proof-note a{color:#fff;text-decoration:underline;text-underline-offset:3px}
+
+/* ===== FAQ ===== */
+.faq-list{max-width:760px;border-top:1px solid var(--line)}
+.faq-item{border-bottom:1px solid var(--line)}
+.faq-item summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:var(--sp-200);padding:var(--sp-300) 0;cursor:pointer;font-size:18px;line-height:28px;font-weight:500}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-item summary .chev{flex:none;width:20px;height:20px;color:var(--ink-3);transition:transform 500ms var(--ease)}
+.faq-item[open] summary .chev{transform:rotate(180deg)}
+.faq-item .answer{padding:0 0 var(--sp-300);color:var(--ink-2);max-width:680px}
+
+/* ===== 尾部 CTA / 页脚 ===== */
+.final-cta{text-align:center;padding-block:var(--sp-900)}
+.final-cta h2{max-width:680px;margin-inline:auto}
+.final-cta p{margin-top:var(--sp-200);color:var(--ink-2)}
+.final-cta .btn{margin-top:var(--sp-400)}
+footer{border-top:1px solid var(--line);padding-block:var(--sp-500);color:var(--ink-3)}
+.foot-grid{display:flex;justify-content:space-between;gap:var(--sp-300);flex-wrap:wrap}
+.foot-links{display:flex;gap:var(--sp-300);flex-wrap:wrap}
+.foot-links a{transition:color 300ms var(--ease)}
+.foot-links a:hover{color:var(--ink)}
+.foot-note{margin-top:var(--sp-300);max-width:760px}
+
+/* ===== 响应式 ===== */
+@media (max-width:900px){
+  .hero-grid{grid-template-columns:1fr;gap:var(--sp-500)}
+  .benefits-grid{grid-template-columns:1fr}
+  .steps{grid-template-columns:1fr}
+  .proof-grid{grid-template-columns:1fr 1fr}
+  .nav-links{display:none}
+  .menu-btn{display:block}
+  .nav{width:100%;justify-content:space-between}
+}
+@media (max-width:560px){
+  .heading-1{font-size:36px;line-height:40px}
+  .heading-2{font-size:36px;line-height:40px}
+  .hero{padding-top:var(--sp-500);padding-bottom:var(--sp-600)}
+  .section{padding-block:var(--sp-600)}
+  .tagline{padding-block:var(--sp-700)}
+  .proof{padding:var(--sp-400)}
+  .final-cta{padding-block:var(--sp-700)}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .bead{animation:none;opacity:1;transform:none}
+  .reveal,.reveal.armed{opacity:1;transform:none;transition:none}
+  .tagline-text .w{opacity:1;transition:none}
+  .mobile-panel a{opacity:1;transform:none;transition:none}
+  *{transition-duration:0.01ms !important;animation-duration:0.01ms !important}
+}
+</style>
+<noscript><style>.reveal{opacity:1;transform:none}.tagline-text .w{opacity:1}.bead{animation:none}</style></noscript>
+</head>
+<body>
+<a class="skip body-5" href="#main">跳到主要内容</a>
+
+<div class="nav-shell">
+  <nav class="nav" aria-label="主导航">
+    <a class="brand" href="/" aria-current="page">
+      <img src="assets/logo.svg" alt="豆莉塔 Logo" width="28" height="28">
+      <span class="brand-name">豆莉塔</span>
+    </a>
+    <div class="nav-links body-5">
+      <a href="#benefits">功能</a>
+      <a href="#how">怎么用</a>
+      <a href="#faq">常见问题</a>
+    </div>
+    <button class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="mobilePanel" aria-label="打开菜单"><span></span><span></span></button>
+  </nav>
+</div>
+
+<div class="mobile-panel" id="mobilePanel" aria-hidden="true">
+  <button class="mobile-close" id="menuClose" aria-label="关闭菜单">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+  <a href="#benefits">功能</a>
+  <a href="#how">怎么用</a>
+  <a href="#faq">常见问题</a>
+  <a href="app.html">免费生成图纸</a>
+</div>
+
+<main id="main">
+<!-- ===== Hero ===== -->
+<section class="hero wrap">
+  <div class="hero-grid">
+    <div>
+      <h1 class="heading-1">把任意图片，变成<br>照着拼的拼豆图纸</h1>
+      <p class="hero-sub body-3">豆莉塔自动把照片映射成 5 大品牌真实色号，杂色合并、背景剥离、用量清单一并算好。免费开源，图片只在你自己的浏览器里处理。</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary button-lg" href="app.html">免费生成图纸
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+      </div>
+      <p class="hero-proof caption-2">
+        <span>AGPL 开源</span><span class="dot"></span><span>291 色</span><span class="dot"></span><span>5 品牌色号</span><span class="dot"></span><span>无需注册</span>
+      </p>
+    </div>
+    <div class="board-card">
+      <svg class="board" id="beadBoard" viewBox="0 0 320 300" role="img" aria-label="拼豆板示意图：一颗由彩色拼豆拼成的爱心"></svg>
+      <div class="board-meta caption-4">
+        <span id="boardStats">正在拼…</span>
+        <span class="board-chip"><i style="background:#E8604C"></i><i style="background:#F2B33D"></i><i style="background:#2F9E6E"></i>真实色号</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 收益 ===== -->
+<section class="section wrap" id="benefits">
+  <div class="section-head reveal">
+    <p class="eyebrow caption-4">为什么用豆莉塔</p>
+    <h2 class="heading-2">拼豆最烦的四件事，<br>它一次做完</h2>
+  </div>
+  <div class="benefits-grid">
+    <article class="benefit reveal">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="3.2"/><circle cx="16" cy="8" r="3.2"/><circle cx="8" cy="16" r="3.2"/><circle cx="16" cy="16" r="3.2"/></svg></div>
+      <h3 class="title-2">色号能直接下单</h3>
+      <p class="body-6">映射到 MARD、COCO、漫漫、盼盼、咪小窝的真实色号，每色用量自动统计，照着买不缺豆。</p>
+    </article>
+    <article class="benefit reveal">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10M4 17h7"/><path d="M17 15l3 3m0-3l-3 3"/></svg></div>
+      <h3 class="title-2">杂色自动清干净</h3>
+      <p class="body-6">相近色按出现频率合并，阈值随手可调，色块边界利落，新手也好拼。</p>
+    </article>
+    <article class="benefit reveal">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h6v6H9z"/></svg></div>
+      <h3 class="title-2">背景一键剥离</h3>
+      <p class="body-6">识别边缘主色洪水填充，只留主体，省豆也省时间。</p>
+    </article>
+    <article class="benefit reveal">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7l5 5-5 5M12 17h7"/></svg></div>
+      <h3 class="title-2">批量一条命令</h3>
+      <p class="body-6">CLI、HTTP、MCP 三个接口，一个文件夹进去，图纸和清单出来，坏图自动跳过。</p>
+    </article>
+  </div>
+</section>
+<!-- ===== 标语逐词显现 ===== -->
+<section class="tagline wrap" aria-label="品牌标语">
+  <p class="tagline-text heading-2" id="tagline">
+    <span class="w">图纸上</span><span class="w">的</span><span class="w">每一个</span><span class="w">色号，</span><br>
+    <span class="w">都是</span><span class="w">能买到</span><span class="w">的</span><span class="w">那一颗。</span>
+  </p>
+</section>
+
+<!-- ===== 怎么用 ===== -->
+<section class="section wrap" id="how">
+  <div class="section-head reveal">
+    <p class="eyebrow caption-4">怎么用</p>
+    <h2 class="heading-2">三步，从照片到豆板</h2>
+  </div>
+  <div class="steps">
+    <article class="step reveal">
+      <div class="step-num">1</div>
+      <h3 class="title-2">传图</h3>
+      <p class="body-6">把 PNG、JPEG 或 BMP 拖进工作台。图片在你自己的浏览器里解码，不经过任何服务器。</p>
+    </article>
+    <article class="step reveal">
+      <div class="step-num">2</div>
+      <h3 class="title-2">调参</h3>
+      <p class="body-6">选格数和品牌，滑一下合并阈值，需要的话一键去背景、排除不想要的颜色。</p>
+    </article>
+    <article class="step reveal">
+      <div class="step-num">3</div>
+      <h3 class="title-2">导出</h3>
+      <p class="body-6">带色号、坐标、用量统计的图纸 PNG，加采购清单和 CSV。要水印就加上你自己的。</p>
+    </article>
+  </div>
+</section>
+
+<!-- ===== 事实面板 ===== -->
+<section class="section wrap">
+  <div class="proof reveal">
+    <div class="proof-grid">
+      <div class="proof-item"><div class="big">291</div><div class="lbl body-6">真实色号，不是近似色卡</div></div>
+      <div class="proof-item"><div class="big">5</div><div class="lbl body-6">品牌映射：MARD、COCO、漫漫、盼盼、咪小窝</div></div>
+      <div class="proof-item"><div class="big">0</div><div class="lbl body-6">图片上传，网页版全程本地处理</div></div>
+      <div class="proof-item"><div class="big">AGPL</div><div class="lbl body-6">整体开源，桌面与网页输出逐像素一致</div></div>
+    </div>
+    <p class="proof-note body-6">算法与色号数据来自 <a href="https://github.com/Zippland/perler-beads" rel="noopener">Zippland/perler-beads</a>，豆莉塔按 AGPL 同协议开源并保留署名。界面、水印、打赏与批量接口为原创重做。</p>
+  </div>
+</section>
+
+<!-- ===== FAQ ===== -->
+<section class="section wrap" id="faq">
+  <div class="section-head reveal">
+    <p class="eyebrow caption-4">常见问题</p>
+    <h2 class="heading-2">先问清楚，再动手拼</h2>
+  </div>
+  <div class="faq-list reveal">
+    <details class="faq-item"><summary>收费吗？<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></summary><p class="answer body-3">免费，AGPL 开源，不用注册。图纸上的品牌小标可以一键关掉，不强制留任何水印。</p></details>
+    <details class="faq-item"><summary>我的图片会上传吗？<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></summary><p class="answer body-3">不会。网页版在你自己的浏览器里解码和渲染；命令行和接口版在你自己的机器上跑。服务器只托管页面代码，不接收图片。</p></details>
+    <details class="faq-item"><summary>支持什么图片格式？<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></summary><p class="answer body-3">PNG、JPEG、BMP。WebP 和 GIF 请先转成 PNG，这是为了保证桌面和网页输出逐像素一致。</p></details>
+    <details class="faq-item"><summary>色号准吗？<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></summary><p class="answer body-3">用 Oklab 感知距离取最近的品牌色，不是简单 RGB 比大小。导出前还能排除不想要的颜色，整图自动重新映射。</p></details>
+    <details class="faq-item"><summary>能批量处理吗？<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></summary><p class="answer body-3">能。命令行支持整个文件夹批量，坏图跳过并记录；HTTP 接口和 MCP 工具供脚本与 Agent 调用，每批输出清单文件。</p></details>
+    <details class="faq-item"><summary>和原版 perler-beads 是什么关系？<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></summary><p class="answer body-3">算法与色号数据来自 Zippland/perler-beads，豆莉塔按 AGPL 同协议开源并保留署名。产品名、界面、水印引擎、打赏模块和批量接口都是原创重做。</p></details>
+    <details class="faq-item"><summary>水印能改成我自己的吗？<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></summary><p class="answer body-3">能。文字或 Logo 图片，九宫格位置或整图平铺，透明度、边距、大小都可调。中文品牌名用 Logo 图片方式加。</p></details>
+    <details class="faq-item"><summary>打赏的钱给谁？<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></summary><p class="answer body-3">给你正在使用的这个部署的运营者，收款码在配置文件里替换。上游原作者的捐赠入口在其官方站点，与本站无关。</p></details>
+  </div>
+</section>
+
+<!-- ===== 尾部 CTA ===== -->
+<section class="final-cta wrap">
+  <h2 class="heading-3 reveal">今晚就能拼上第一块豆板</h2>
+  <p class="body-3 reveal">免费，不用注册，图片不离开你的设备。</p>
+  <a class="btn btn-primary button-lg reveal" href="app.html">免费生成图纸
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+  </a>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid body-6">
+      <span>豆莉塔 DOLITA · AGPL-3.0 开源</span>
+      <div class="foot-links">
+        <a href="privacy.html">隐私政策</a>
+        <a href="terms.html">使用条款</a>
+        <a href="https://github.com/Zippland/perler-beads" rel="noopener">上游原版</a>
+        <a href="app.html#donate">请喝奶茶</a>
+      </div>
+    </div>
+    <p class="foot-note caption-2">基于 Zippland/perler-beads 二次创作，算法与色号数据归属原作者。禁止闭源商用包装。</p>
+  </div>
+</footer>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"收费吗？","acceptedAnswer":{"@type":"Answer","text":"免费，AGPL 开源，不用注册。图纸上的品牌小标可以一键关掉，不强制留任何水印。"}},
+{"@type":"Question","name":"我的图片会上传吗？","acceptedAnswer":{"@type":"Answer","text":"不会。网页版在你自己的浏览器里解码和渲染；命令行和接口版在你自己的机器上跑。服务器只托管页面代码，不接收图片。"}},
+{"@type":"Question","name":"支持什么图片格式？","acceptedAnswer":{"@type":"Answer","text":"PNG、JPEG、BMP。WebP 和 GIF 请先转成 PNG，这是为了保证桌面和网页输出逐像素一致。"}},
+{"@type":"Question","name":"色号准吗？","acceptedAnswer":{"@type":"Answer","text":"用 Oklab 感知距离取最近的品牌色，不是简单 RGB 比大小。导出前还能排除不想要的颜色，整图自动重新映射。"}},
+{"@type":"Question","name":"能批量处理吗？","acceptedAnswer":{"@type":"Answer","text":"能。命令行支持整个文件夹批量，坏图跳过并记录；HTTP 接口和 MCP 工具供脚本与 Agent 调用，每批输出清单文件。"}},
+{"@type":"Question","name":"和原版 perler-beads 是什么关系？","acceptedAnswer":{"@type":"Answer","text":"算法与色号数据来自 Zippland/perler-beads，豆莉塔按 AGPL 同协议开源并保留署名。产品名、界面、水印引擎、打赏模块和批量接口都是原创重做。"}},
+{"@type":"Question","name":"水印能改成我自己的吗？","acceptedAnswer":{"@type":"Answer","text":"能。文字或 Logo 图片，九宫格位置或整图平铺，透明度、边距、大小都可调。中文品牌名用 Logo 图片方式加。"}},
+{"@type":"Question","name":"打赏的钱给谁？","acceptedAnswer":{"@type":"Answer","text":"给你正在使用的这个部署的运营者，收款码在配置文件里替换。上游原作者的捐赠入口在其官方站点，与本站无关。"}}
+]}
+</script>
+
+<script>
+(function(){
+  'use strict';
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ===== Hero 拼豆板：原创 SVG，逐颗弹出 ===== */
+  var MAP = [
+    '..XX...XX..',
+    '.XXXX.XXXX.',
+    'XXOXXXXXXX.',
+    'XXXXXXXXXXX',
+    'XXXXXXXXXXX',
+    '.XXXXXXXXX.',
+    '..XXXXXXX..',
+    '...XXXXX...',
+    '....XXX....',
+    '.....X.....'
+  ];
+  var board = document.getElementById('beadBoard');
+  var NS = 'http://www.w3.org/2000/svg';
+  var cell = 26, cols = 11, rows = MAP.length;
+  var ox = (320 - cols * cell) / 2 + cell / 2, oy = (300 - rows * cell) / 2 + cell / 2;
+  var beads = 0, i = 0;
+  for (var y = 0; y < rows; y++) {
+    for (var x = 0; x < cols; x++) {
+      var ch = MAP[y][x];
+      var peg = document.createElementNS(NS, 'circle');
+      peg.setAttribute('cx', ox + x * cell); peg.setAttribute('cy', oy + y * cell);
+      peg.setAttribute('r', 4); peg.setAttribute('fill', '#E3E6DD');
+      board.appendChild(peg);
+      if (ch === '.') continue;
+      beads++;
+      var g = document.createElementNS(NS, 'g');
+      g.setAttribute('class', 'bead');
+      if (!reduced) g.style.animationDelay = (i * 26) + 'ms';
+      var c = document.createElementNS(NS, 'circle');
+      c.setAttribute('cx', ox + x * cell); c.setAttribute('cy', oy + y * cell); c.setAttribute('r', 11);
+      c.setAttribute('fill', ch === 'O' ? '#F2B33D' : '#E8604C');
+      var hole = document.createElementNS(NS, 'circle');
+      hole.setAttribute('cx', ox + x * cell); hole.setAttribute('cy', oy + y * cell); hole.setAttribute('r', 3.6);
+      hole.setAttribute('fill', ch === 'O' ? '#C78A1B' : '#B8432F');
+      g.appendChild(c); g.appendChild(hole); board.appendChild(g);
+      i++;
+    }
+  }
+  document.getElementById('boardStats').textContent = cols + ' × ' + rows + ' 格 · 2 色 · ' + beads + ' 颗';
+
+  /* ===== 滚动揭示（一次性） ===== */
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.reveal').forEach(function(el){ el.classList.add('armed'); io.observe(el); });
+
+  /* ===== 标语逐词显现（B11） ===== */
+  var wio = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (e.isIntersecting) { e.target.classList.add('on'); wio.unobserve(e.target); }
+    });
+  }, { threshold: 0.9 });
+  document.querySelectorAll('#tagline .w').forEach(function(el){ wio.observe(el); });
+
+  /* ===== 移动端菜单 ===== */
+  var btn = document.getElementById('menuBtn'), panel = document.getElementById('mobilePanel'), closeBtn = document.getElementById('menuClose');
+  var links = panel.querySelectorAll('a');
+  function setMenu(open){
+    btn.setAttribute('aria-expanded', String(open));
+    panel.setAttribute('aria-hidden', String(!open));
+    panel.classList.toggle('open', open);
+    links.forEach(function(a, idx){ a.style.transitionDelay = open ? Math.min(idx * 60, 400) + 'ms' : '0ms'; });
+    if (open) closeBtn.focus(); else btn.focus();
+  }
+  btn.addEventListener('click', function(){ setMenu(true); });
+  closeBtn.addEventListener('click', function(){ setMenu(false); });
+  links.forEach(function(a){ a.addEventListener('click', function(){ setMenu(false); }); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && panel.classList.contains('open')) setMenu(false); });
+})();
+</script>
+</body>
+</html>

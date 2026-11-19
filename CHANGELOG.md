@@ -1,5 +1,34 @@
 # 更新日志
 
+## v3.0 · 图纸规格对齐线上 2.0（本次顶替旧版）
+
+### 修了什么
+
+- **图纸不再锁死 26px**：`cell = clamp(3600 // 列数, 24, 48)`，100 格 = 36px，图宽 **3792**（旧版 2792）。
+- **色号字号 7px → 15px**：`0.42 × cell`，与线上同粗大。
+- **每格加一道浅边**（提亮 16%），放大后格子边界不粘连。
+- **03 水印参数对齐**：size `cell×1.8`、alpha 120、spacing 1.8。
+
+### 加了什么
+
+- `docs/` —— **豆莉塔在线工作台**，纯静态、零依赖，GitHub Pages 托管：
+  <https://chengangrun-ai.github.io/pindou-gongzi/>
+- `scripts/dolita_convert.mjs` —— **零依赖 node 取色桥**，直接调 `docs/core`，不需要任何服务器。
+- `scripts/chart_hq.py` —— 色号矩阵原生排版，一次出 **PNG + SVG + 矢量 PDF**。
+- `scripts/pack_dolita.py` —— 新主流程：取色 → 四图 → 交付包 → 无标版 → 台账 → 总览 → zip，一次 ≤20 张。
+- **交付包每次必出**：矢量 PDF（放大 800% 不糊）+ 无标成品 jpg + 使用说明。
+- `TROUBLESHOOTING.md` 追加第 13/14/15 条。
+
+### 分工定死了
+
+```
+豆莉塔引擎（docs/core）  → 算法、格数、MARD 291 色号   ← 与线上逐格 0 差
+chart_hq.py             → 03 图纸排版                ← 与线上同规格
+brand.py / deliver.py   → 02/04、水印、交付包、装包    ← 视觉层
+```
+
+`auto_run.py` 保留为兜底（自带取色，色号与线上不一致），**要卖图走 `pack_dolita.py`**。
+
 ## v2.2 — 2026-10-24
 
 ### 一致性（客诉防火墙）

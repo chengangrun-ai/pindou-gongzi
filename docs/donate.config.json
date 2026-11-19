@@ -1,0 +1,29 @@
+{
+  "enabled": true,
+  "authorName": "豆莉塔作者",
+  "avatarText": "豆",
+  "avatar": null,
+  "message": "如果豆莉塔帮你省了时间，欢迎赞赏支持。完全自愿，不影响任何功能。",
+  "wechat": "public/wechat-qr.png",
+  "alipay": "public/alipay-qr.png",
+  "alipayByAmount": {
+    "1": "public/alipay-1.png",
+    "5": "public/alipay-5.png",
+    "10": "public/alipay-10.png",
+    "20": "public/alipay-20.png",
+    "50": "public/alipay-50.png",
+    "100": "public/alipay-100.png",
+    "200": "public/alipay-200.png"
+  },
+  "alipayCustom": "public/alipay-qr.png",
+  "customLabel": "自选金额",
+  "wechatLabel": "微信赞赏",
+  "alipayLabel": "支付宝",
+  "amounts": [1, 5, 10, 20, 50, 100, 200],
+  "defaultAmount": 10,
+  "wechatHint": "请使用微信扫码赞赏",
+  "alipayHint": "请使用支付宝扫码，支付金额：{amount} 元",
+  "alipayCustomHint": "请使用支付宝扫码，并手动输入金额",
+  "contact": "联系作者：微信 Cgr720 / 邮箱 1540551591@qq.com",
+  "note": "赞赏完全自愿，不影响任何功能。"
+}
